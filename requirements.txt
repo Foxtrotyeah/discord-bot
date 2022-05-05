@@ -1,0 +1,10 @@
+pip
+youtube_dl
+discord.py[voice] ~= 1.7.1
+ffmpeg
+mysql-connector
+mysql-connector-python
+googletrans==3.1.0a0
+requests
+numpy
+pytz
