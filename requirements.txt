@@ -1,6 +1,6 @@
 pip
 youtube_dl
-discord.py[voice] ~= 1.7.1
+discord.py[voice]~=1.7.1
 ffmpeg
 mysql-connector
 mysql-connector-python
