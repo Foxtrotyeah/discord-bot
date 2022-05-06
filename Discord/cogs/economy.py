@@ -5,13 +5,13 @@ import os
 from datetime import datetime
 import pytz
 
-with open("Discord/config.json") as infile:
-    config = {
-        "host": os.environ['MYSQL_HOST'],
-        "user": os.environ['MYSQL_USER'],
-        "passwd": os.environ['MYSQL_PASSWORD'],
-        "database": os.environ['MYSQL_DATABASE']
-    }
+
+config = {
+    "host": os.environ['MYSQL_HOST'],
+    "user": os.environ['MYSQL_USER'],
+    "passwd": os.environ['MYSQL_PASSWORD'],
+    "database": os.environ['MYSQL_DATABASE']
+}
 
 db = mysql.connector.connect(**config)
 cursor = db.cursor()
