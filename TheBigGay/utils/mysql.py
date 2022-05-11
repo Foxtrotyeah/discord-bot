@@ -38,9 +38,9 @@ def _check_exists(table: str, user_id: str):
 	db.close()
 
 
-def _get_user_data(ctx):
-    table = str(ctx.guild.id) + "_economy"
-    user_id = str(ctx.author.id)
+def _get_user_data(member: discord.Member):
+    table = str(member.guild.id) + "_economy"
+    user_id = str(member.id)
 
     _check_exists(table, user_id)
 
@@ -55,14 +55,14 @@ def _get_user_data(ctx):
     return result
 
 
-def get_balance(ctx):
-    result = _get_user_data(ctx)
+def get_balance(member: discord.Member):
+    result = _get_user_data(member)
 
     return result[1]
 
 
-def check_subsidy(ctx):
-    result = _get_user_data(ctx)
+def check_subsidy(member: discord.Member):
+    result = _get_user_data(member)
 
     if result[1] < 100 and result[2].date() < datetime.now(timezone).date():
         return True
@@ -71,8 +71,8 @@ def check_subsidy(ctx):
 
 
 # Get all economy data
-def get_economy(ctx):
-    table = str(ctx.guild.id) + "_economy"
+def get_economy(guild: discord.Guild):
+    table = str(guild.id) + "_economy"
 
     db = pymysql.connect(**config)
     cursor = db.cursor()
@@ -86,13 +86,11 @@ def get_economy(ctx):
 
 
 # Updates a user's balance
-async def update_bal(ctx, user: discord.Member, amt: int):
-    _check_exists(ctx)
+async def update_bal(ctx, member: discord.Member, amt: int):
+    table = str(member.guild.id) + "_economy"
+    user_id = str(member.id)
 
-    guild = user.guild
-
-    table = str(guild.id) + "_economy"
-    user_id = str(user.id)
+    _check_exists(table, user_id)
 
     db = pymysql.connect(**config)
     cursor = db.cursor()
@@ -108,4 +106,4 @@ async def update_bal(ctx, user: discord.Member, amt: int):
     db.close()
 
     if new_bal == 0:
-        await ctx.send(f"{user.mention} is broke! LOL")
+        await ctx.send(f"{member.mention} is broke! LOL")
