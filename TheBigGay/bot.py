@@ -24,13 +24,13 @@ help_command = commands.DefaultHelpCommand(no_category="Default Commands")
 intents = discord.Intents.all()
 
 extensions = (
-    'admin',
     'audio',
     'economy',
     'events',
     'gambling',
     'misc',
-    'polls'
+    'polls',
+    'shop'
 )
 
 
