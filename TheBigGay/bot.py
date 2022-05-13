@@ -4,8 +4,6 @@ import requests
 import os
 from collections import Counter
 
-from utils.roles import Roles
-
 
 # Bot link
 r = requests.head(url=os.environ['URL'])
@@ -21,7 +19,16 @@ description = "Hey there~ I'm a bot written by my daddy Foxtrot."
 help_command = commands.DefaultHelpCommand(no_category="Default Commands")
 
 # Right now the bot is set to admin permissions (permissions=8).
-intents = discord.Intents.all()
+intents = discord.Intents(
+    guilds=True,
+    members=True,
+    bans=True,
+    emojis=True,
+    voice_states=True,
+    messages=True,
+    reactions=True,
+    message_content=True,
+)
 
 extensions = (
     'audio',
@@ -30,16 +37,9 @@ extensions = (
     'gambling',
     'misc',
     'polls',
+    'roles',
     'shop'
 )
-
-
-def initialize_databases():
-    pass
-
-
-def initialize_roles():
-    pass
 
 
 class GayBot(commands.AutoShardedBot):
@@ -91,9 +91,6 @@ class GayBot(commands.AutoShardedBot):
         await self.invoke(ctx)
 
     async def on_ready(self):
-        initialize_databases()
-        initialize_roles()
-
         game = discord.Game("with a DILF | .help")
         await self.change_presence(status=discord.Status.online, activity=game)
 
