@@ -2,12 +2,34 @@ import random
 import asyncio
 import discord
 from discord.ext import commands
-# from discord.cogs.economy import *
+
+from ..utils import mysql
 
 
 class Gambling(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        guilds = self.bot.guilds
+
+        for guild in guilds:
+            channels = [x.name for x in guild.text_channels]
+
+            if "gambling-hall" not in channels:
+                await self.create_gambling_channel(guild)
+
+    async def create_gambling_channel(self, guild):
+        general_category = discord.utils.get(guild.categories, name="Text Channels")
+        if not general_category:
+            general_category = await guild.create_category("Text Channels", position=1)
+        await guild.create_text_channel(
+            "gambling-hall",
+            topic="This is where you gamble your gaybucks away.",
+            category=general_category,
+            position=32
+        )
 
     @commands.command(brief="Show the leaderboard for gambling games",
                       description="Check who has won the most money in each of the gambling games.")
