@@ -99,6 +99,13 @@ class Roles(commands.Cog):
         guilds = self.bot.guilds
 
         for guild in guilds:
+            # Check if roles required for the bot are present
+            roles = [x.name for x in guild.roles]
+            for role, function in self.needed_roles.items():
+                if role not in roles:
+                    await function(guild)
+
+            # Check for get-your-roles channel
             channels = [x.name for x in guild.text_channels]
 
             if "get-your-roles" not in channels:
@@ -123,6 +130,11 @@ class Roles(commands.Cog):
                     read_messages=True,
                     send_messages=False,
                     add_reactions=False
+                ),
+                guild.me: discord.PermissionOverwrite(
+                    read_messages=True,
+                    send_messages=True,
+                    add_reactions=True
                 )
             }
         )
@@ -179,15 +191,14 @@ class Roles(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
-        if payload.member.bot:
+        guild = self.bot.get_guild(payload.guild_id)
+        user = guild.get_member(payload.user_id)
+        if user.bot:
             return
 
         channel = self.bot.get_channel(payload.channel_id)
         if channel.name != "get-your-roles":
             return
-
-        guild = self.bot.get_guild(payload.guild_id)
-        user = guild.get_member(payload.user_id)
 
         if str(payload.emoji) in self.pronouns:
             role = discord.utils.get(guild.roles, name=self.pronouns[str(payload.emoji)])
