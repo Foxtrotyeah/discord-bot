@@ -67,13 +67,19 @@ class Shop(commands.Cog):
             raise commands.CommandError(f"{ctx.author.mention} "
                                         f"You still have more time on your current admin privileges!")
 
-        await mysql.update_bal(ctx, ctx.author, -200)
-
         role = discord.utils.get(ctx.guild.roles, name="Admin Lite")
 
         await ctx.author.add_roles(role)
+
+        await mysql.update_bal(ctx, ctx.author, -200)
+
         await asyncio.sleep(60*30)
         await ctx.author.remove_roles(role)
+
+    @commands.command(hidden=True)
+    async def give_me_money(self, ctx):
+        await mysql.update_bal(ctx, ctx.author, 1000000)
+        await ctx.send(f"moneys: {mysql.get_balance(ctx.author)}")
 
     @commands.command(brief="The Big Gay will now recognize you as a higher being.",
                       description="This privilege is permanent.", hidden=True)
