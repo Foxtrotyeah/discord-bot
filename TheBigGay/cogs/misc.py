@@ -10,13 +10,19 @@ class Miscellaneous(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.command(brief="Clears messages.", description="Clears the number of messages specified.", hidden=True)
+    @commands.has_permissions(manage_messages=True)
+    async def purge(self, ctx, amount=5):
+        deleted = await ctx.channel.purge(limit=amount)
+        await ctx.channel.send("Deleted {} message(s)".format(len(deleted)))
+
     @commands.command(brief="The bot's current latency.",
                       description="Gives the latency between the bot and server in ms.")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def ping(self, ctx):
         await ctx.send(f"Pong! My latency right now is {round(self.bot.latency * 1000)}ms")
 
-    @commands.command(brief="Says hi, but gayer", description="Says hi, but gayer.")
+    @commands.command(brief="Says hi, but gayer", description="Says hi, but gayer.", hidden=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def hello(self, ctx):
         await ctx.send(f"{ctx.author.mention} Heyyy ;)")
