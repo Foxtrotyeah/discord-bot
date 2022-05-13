@@ -5,6 +5,8 @@ import os
 from datetime import datetime
 import pytz
 
+from ..utils import mysql
+
 
 config = {
     "host": os.environ['MYSQL_HOST'],
