@@ -1,8 +1,7 @@
 youtube_dl
 git+https://github.com/Rapptz/discord.py
 ffmpeg
-mysql-connector
-mysql-connector-python
+pymysql
 googletrans==3.1.0a0
 requests
 numpy
