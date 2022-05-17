@@ -2,6 +2,7 @@ import random
 import asyncio
 import discord
 from discord.ext import commands
+import time
 
 from .utils import mysql
 from .utils import checks
@@ -352,7 +353,7 @@ class Gambling(commands.Cog):
         embed.add_field(name="Multiplier", value="{:.1f}x".format(multiplier), inline=True)
         embed.add_field(name="\u200b", value="\u200b", inline=True)
         embed.add_field(name="Profit", value=f"{int(profit)} gaybucks", inline=True)
-        embed.add_field(name="\u200b", value=f"React with ❌ to stop!\nUser: {ctx.author.mention}", inline=False)
+        embed.add_field(name="\u200b", value=f"React with :x: to stop!\nUser: {ctx.author.mention}", inline=False)
         message = await ctx.send(embed=embed)
         await message.add_reaction('❌')
 
@@ -360,7 +361,8 @@ class Gambling(commands.Cog):
             await asyncio.sleep(1)
 
             new_msg = discord.utils.get(self.bot.cached_messages, id=message.id)
-            reactors = await new_msg.reactions[0].users().flatten()
+            reactions = next((x for x in new_msg.reactions if x.emoji =='❌'), None)
+            reactors = [user async for user in reactions.users()]
             if ctx.author in reactors:
                 if int(round(profit, 5)) != 0:
                     await mysql.update_balance(ctx, ctx.author, int(round(profit, 5)))
@@ -384,7 +386,7 @@ class Gambling(commands.Cog):
             embed.add_field(name="Multiplier", value="{:.1f}x".format(multiplier), inline=True)
             embed.add_field(name="\u200b", value="\u200b", inline=True)
             embed.add_field(name="Profit", value=f"{int(round(profit, 5))} gaybucks", inline=True)
-            embed.add_field(name="\u200b", value=f"React with ❌ to stop!\nUser: {ctx.author.mention}", inline=False)
+            embed.add_field(name="\u200b", value=f"React with :x: to stop!\nUser: {ctx.author.mention}", inline=False)
             await message.edit(embed=embed)
 
             chance = random.randint(1, 8)
