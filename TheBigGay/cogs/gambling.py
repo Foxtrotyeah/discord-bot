@@ -3,7 +3,11 @@ import asyncio
 import discord
 from discord.ext import commands
 
-from ..utils import mysql
+from .utils import mysql
+from .utils import checks
+
+
+# TODO Commands no worky
 
 
 class Gambling(commands.Cog):
@@ -15,29 +19,42 @@ class Gambling(commands.Cog):
         guilds = self.bot.guilds
 
         for guild in guilds:
-            channels = [x.name for x in guild.text_channels]
+            categories = [x.name for x in guild.categories]
 
-            if "gambling-hall" not in channels:
-                await self.create_gambling_channel(guild)
+            if "Gambling" not in categories:
+                await self.create_gambling_category(guild)
 
-    async def create_gambling_channel(self, guild):
-        general_category = discord.utils.get(guild.categories, name="Text Channels")
-        if not general_category:
-            general_category = await guild.create_category("Text Channels", position=1)
-        await guild.create_text_channel(
-            "gambling-hall",
-            topic="This is where you gamble your gaybucks away.",
-            category=general_category,
+    async def create_gambling_category(self, guild):
+        gambling_category = await guild.create_category(
+            "Gambling", 
+            # TODO Overwrites for not being allowed to touch threads
+            # overwrites={
+            #     guild.default_role: discord.PermissionOverwrite(
+            #         send_messages=False,
+            #         add_reactions=False
+            #     ),
+            #     guild.me: discord.PermissionOverwrite(
+            #         read_messages=True,
+            #         send_messages=True,
+            #         add_reactions=True
+            #     )
+            # },
             position=32
+        )
+
+        await guild.create_text_channel(
+            "main-hall",
+            topic="This is where you gamble your gaybucks away.",
+            category=gambling_category,
+            position=0
         )
 
     @commands.command(brief="Show the leaderboard for gambling games",
                       description="Check who has won the most money in each of the gambling games.")
-    @commands.check(check_status)
-    @commands.check(check_channel)
+    @checks.is_gambling_category()
     @commands.cooldown(1, 60, commands.BucketType.guild)
     async def leaderboard(self, ctx):
-        leaderboard = get_leaderboard(ctx)
+        leaderboard = mysql.get_leaderboard(ctx.guild)
 
         embed = discord.Embed(title="Leaderboard", color=discord.Color.purple())
         for row in leaderboard:
@@ -50,17 +67,10 @@ class Gambling(commands.Cog):
 
     @commands.command(brief="(1 Player) What are the odds?",
                       description="What are the odds I give you money? (1 in...?)")
-    @commands.check(check_channel)
+    @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def odds(self, ctx, bet=None):
-        if not bet:
-            raise commands.CommandError(f"{ctx.author.mention} Try `.help` + `[the function name]` "
-                                        f"to get more info on how to use this command.")
-        try:
-            bet = int(bet)
-        except ValueError:
-            raise commands.CommandError(f"{ctx.author.mention} Your bet must be an integer (whole) number.")
-        check_funds(ctx, bet)
+    async def odds(self, ctx, bet: int):
+        checks.has_funds(bet)
 
         # Initial prompt to get the 1:? odds
         embed = discord.Embed(title="Odds",
@@ -113,40 +123,33 @@ class Gambling(commands.Cog):
 
         if result == pick:
             payout = bet * choice
-            await update_bal(ctx, ctx.author, ctx.guild, amt=int(payout - bet))
+            await mysql.update_balance(ctx, ctx.author, int(payout - bet))
 
             embed = discord.Embed(title="Odds",
                                   description=f"**{pick}!** Congrats, {ctx.author.mention}! "
                                               f"At **{choice}:1 odds**, your payout is **{payout} gaybucks**.",
                                   color=discord.Color.green())
-            embed.add_field(name="Balance", value=f"You now have {check_funds(ctx, bal_check=True)} gaybucks.",
+            embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks.",
                             inline=False)
 
-            if check_leaderboard(ctx, "Odds", ctx.author, payout):
+            if mysql.check_leaderboard("Odds", ctx.author, payout):
                 await ctx.send("New Odds high score!")
         else:
-            await update_bal(ctx, ctx.author, ctx.guild, amt=-bet)
+            await mysql.update_balance(ctx, ctx.author, -bet)
             embed = discord.Embed(title="Odds",
                                   description=f"**{pick}!** Sorry,{ctx.author.mention}, better luck next time.",
                                   color=discord.Color.red())
-            embed.add_field(name="Balance", value=f"You now have {check_funds(ctx, bal_check=True)} gaybucks.",
+            embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks.",
                             inline=False)
 
         await ctx.send(embed=embed)
 
     @commands.command(brief="(2 Players) Bet to see who wins with a higher card",
                       discription="Bet with a friend to see who wins with a higher card.")
-    @commands.check(check_channel)
+    @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def cardcut(self, ctx, member: discord.Member = None, bet=None):
-        if not member or not bet:
-            raise commands.CommandError(f"{ctx.author.mention} Try `.help` + `[the function name]` "
-                                        f"to get more info on how to use this command.")
-        try:
-            bet = int(bet)
-        except ValueError:
-            raise commands.CommandError(f"{ctx.author.mention} Your bet must be an integer (whole) number.")
-        check_funds(ctx, bet)
+    async def cardcut(self, ctx, member: discord.Member, bet: int):
+        checks.has_funds(bet)
 
         player1 = ctx.author
         player2 = member
@@ -169,7 +172,7 @@ class Gambling(commands.Cog):
             answer = str(msg.content).lower()
             if "yes" in answer:
                 try:
-                    if check_funds(msg, bet):
+                    if checks.has_funds(bet, member=msg.author):
                         return True
                     else:
                         return False
@@ -195,8 +198,8 @@ class Gambling(commands.Cog):
         embed = discord.Embed(title="Card Cutting", description=description, color=discord.Color.green())
         card_cut = await ctx.send(embed=embed)
 
-        suits = ["♠", "♥", "♣", "♦"]
-        numbers = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "**Jack**", "👸", "🤴"]
+        suits = [":spades:", ":hearts:", ":clubs:", ":diamonds:"]
+        numbers = [":regional_indicator_a", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:", ":keycap_ten:", ":regional_indicator_j", ":regional_indicator_q:", ":regional_indicator_k:"]
 
         def card():
             suit_num = random.randint(0, 3)
@@ -237,10 +240,10 @@ class Gambling(commands.Cog):
         winner = final[0][0]
         loser = final[1][0]
 
-        await update_bal(ctx, winner, winner.guild, amt=pot - bet)
-        await update_bal(ctx, loser, loser.guild, amt=-bet)
+        await mysql.update_balance(ctx, winner, pot - bet)
+        await mysql.update_balance(ctx, loser, -bet)
 
-        if check_leaderboard(ctx, "Cardcut", ctx.author, pot):
+        if mysql.check_leaderboard("Cardcut", ctx.author, pot):
             await ctx.send("New Cardcut high score!")
 
         # todo check_funds needs to check player2 not ctx
@@ -257,21 +260,13 @@ class Gambling(commands.Cog):
 
     @commands.command(brief="(1 Player) Bet on which horse will win the race.",
                       discription="Bet with 5x odds on which of the five horses will reach the finish line first.")
-    @commands.check(check_channel)
+    @checks.is_gambling_category()
     @commands.cooldown(1, 25, commands.BucketType.user)
-    async def horse(self, ctx, guess=None, bet=None):
-        if not bet or not guess:
-            raise commands.CommandError(f"{ctx.author.mention} Try `.help` + `[the function name]` "
-                                        f"to get more info on how to use this command.")
-        try:
-            guess = int(guess)
-            bet = int(bet)
-            if 1 > guess > 5:
-                raise commands.CommandError(f"{ctx.author.mention} Your guess must be a number from 1-5.")
-        except ValueError:
-            raise commands.CommandError(f"{ctx.author.mention} "
-                                        f"and your bet must be an integer (whole) number.")
-        check_funds(ctx, bet)
+    async def horse(self, ctx, guess: int, bet: int):
+        if 1 > guess > 5:
+            return await ctx.send(f"{ctx.author.mention} Your guess must be a number from 1-5.")
+        
+        checks.has_funds(bet)
 
         horses = [
             "🏁- - - - - 🏇**1.**",
@@ -309,53 +304,46 @@ class Gambling(commands.Cog):
                 break
 
         if winner == guess:
-            await update_bal(ctx, ctx.author, ctx.author.guild, amt=bet * 2)
-            if check_leaderboard(ctx, "Horse", ctx.author, bet * 3):
+            await mysql.update_balance(ctx, ctx.author, bet * 2)
+            if mysql.check_leaderboard("Horse", ctx.author, bet * 3):
                 await ctx.send("New Horse high score!")
 
             description = f"**Horse {winner} Wins!**\n{ctx.author.mention} You have won {bet * 3} gaybucks!\n\n" \
-                          f"**Balance**\nYou now have {check_funds(ctx, bal_check=True)} gaybucks"
+                          f"**Balance**\nYou now have {mysql.get_balance(ctx.author)} gaybucks"
             embed2 = discord.Embed(title=f"Horse Racing", description=description, color=discord.Color.green())
             await ctx.send(embed=embed2)
         elif int(third) == guess or (int(second) == guess and tie):
-            await update_bal(ctx, ctx.author, ctx.author.guild, amt=bet)
-            if check_leaderboard(ctx, "Horse", ctx.author, bet * 2):
+            await mysql.update_balance(ctx, ctx.author, bet)
+            if mysql.check_leaderboard("Horse", ctx.author, bet * 2):
                 await ctx.send("New Horse high score!")
 
             description = f"**Horse {second} Comes in Second (tie)!**\n{ctx.author.mention} You have won {bet * 2} gaybucks!\n\n" \
-                          f"**Balance**\nYou now have {check_funds(ctx, bal_check=True)} gaybucks"
+                          f"**Balance**\nYou now have {mysql.get_balance(ctx.author)} gaybucks"
             embed2 = discord.Embed(title=f"Horse Racing", description=description, color=discord.Color.green())
             await ctx.send(embed=embed2)
         elif int(second) == guess:
-            await update_bal(ctx, ctx.author, ctx.author.guild, amt=bet)
-            if check_leaderboard(ctx, "Horse", ctx.author, bet * 2):
+            await mysql.update_balance(ctx, ctx.author, bet)
+            if mysql.check_leaderboard("Horse", ctx.author, bet * 2):
                 await ctx.send("New Horse high score!")
 
             description = f"**Horse {second} Comes in Second!**\n{ctx.author.mention} You have won {bet * 2} gaybucks!\n\n" \
-                          f"**Balance**\nYou now have {check_funds(ctx, bal_check=True)} gaybucks"
+                          f"**Balance**\nYou now have {mysql.get_balance(ctx.author)} gaybucks"
             embed2 = discord.Embed(title=f"Horse Racing", description=description, color=discord.Color.green())
             await ctx.send(embed=embed2)
         else:
-            await update_bal(ctx, ctx.author, ctx.author.guild, amt=-bet)
+            await mysql.update_balance(ctx, ctx.author, -bet)
             description = f"**Horse {winner} Wins**\n{ctx.author.mention} You have lost {bet} gaybucks.\n\n**Balance**" \
-                          f"\nYou now have {check_funds(ctx, bal_check=True)} gaybucks"
+                          f"\nYou now have {mysql.get_balance(ctx.author)} gaybucks"
             embed2 = discord.Embed(title=f"Horse Racing", description=description, color=discord.Color.red())
             await ctx.send(embed=embed2)
 
     @commands.command(brief="(1 Player) Multiplier will go higher, but you have to stop before it crashes.",
                       discription="The multiplier and your payout will keep going higher. "
                                   "If it crashes before you stop it, you lose your bet.")
-    @commands.check(check_channel)
+    @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def crash(self, ctx, bet=None):
-        if not bet:
-            raise commands.CommandError(f"{ctx.author.mention} Try `.help` + `[the function name]` "
-                                        f"to get more info on how to use this command.")
-        try:
-            bet = int(bet)
-        except ValueError:
-            raise commands.CommandError(f"{ctx.author.mention} Your bet must be an integer (whole) number.")
-        check_funds(ctx, int(bet))
+    async def crash(self, ctx, bet: int):
+        checks.has_funds(bet)
 
         multiplier = 1.0
         profit = (bet * multiplier) - bet
@@ -375,15 +363,15 @@ class Gambling(commands.Cog):
             reactors = await new_msg.reactions[0].users().flatten()
             if ctx.author in reactors:
                 if int(round(profit, 5)) != 0:
-                    await update_bal(ctx, ctx.author, ctx.author.guild, amt=int(round(profit, 5)))
-                    if check_leaderboard(ctx, "Crash", ctx.author, int(round(profit, 5))):
+                    await mysql.update_balance(ctx, ctx.author, int(round(profit, 5)))
+                    if mysql.check_leaderboard("Crash", ctx.author, int(round(profit, 5))):
                         await ctx.send("New Crash high score!")
 
                 embed = discord.Embed(title="Crash", color=discord.Color.green())
                 embed.add_field(name="Stopped at", value="{:.1f}x".format(multiplier), inline=True)
                 embed.add_field(name="\u200b", value="\u200b", inline=True)
                 embed.add_field(name="Profit", value=f"{int(round(profit, 5))} gaybucks", inline=True)
-                embed.add_field(name="Balance", value=f"You now have {check_funds(ctx, bal_check=True)} gaybucks.",
+                embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks.",
                                 inline=False)
                 embed.add_field(name="\u200b", value=f"User: {ctx.author.mention}", inline=False)
                 await message.edit(embed=embed)
@@ -401,13 +389,13 @@ class Gambling(commands.Cog):
 
             chance = random.randint(1, 8)
             if chance == 1:
-                await update_bal(ctx, ctx.author, ctx.author.guild, amt=-bet)
+                await mysql.update_balance(ctx, ctx.author, -bet)
 
                 embed = discord.Embed(title="Crash", color=discord.Color.red())
                 embed.add_field(name="Crashed at", value="{:.1f}x".format(multiplier), inline=True)
                 embed.add_field(name="\u200b", value="\u200b", inline=True)
                 embed.add_field(name="Profit", value=f"{-bet} gaybucks", inline=True)
-                embed.add_field(name="Balance", value=f"You now have {check_funds(ctx, bal_check=True)} gaybucks.",
+                embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks.",
                                 inline=False)
                 embed.add_field(name="\u200b", value=f"User: {ctx.author.mention}", inline=False)
                 await message.edit(embed=embed)
@@ -416,17 +404,10 @@ class Gambling(commands.Cog):
     @commands.command(brief="(1 Player) See how many squares you can clear.",
                       description="There are three mines in a field. "
                                   "Clear as many squares as you can before you blow up.")
-    @commands.check(check_channel)
+    @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def minesweeper(self, ctx, bet=None):
-        if not bet:
-            raise commands.CommandError(f"{ctx.author.mention} Try `.help` + `[the function name]` "
-                                        f"to get more info on how to use this command.")
-        try:
-            bet = int(bet)
-        except ValueError:
-            raise commands.CommandError(f"{ctx.author.mention} Your bet must be an integer (whole) number.")
-        check_funds(ctx, bet)
+    async def minesweeper(self, ctx, bet: int):
+        checks.has_funds(bet)
 
         field = "``` -------------------" \
                 "\n| A1 | B1 | C1 | D1 |" \
@@ -488,14 +469,14 @@ class Gambling(commands.Cog):
                 await field_msg.edit(content=field)
 
                 if total > 0:
-                    await update_bal(ctx, ctx.author, ctx.author.guild, amt=total)
-                    if check_leaderboard(ctx, "Minesweeper", ctx.author, total):
+                    await mysql.update_balance(ctx, ctx.author, total)
+                    if mysql.check_leaderboard("Minesweeper", ctx.author, total):
                         await ctx.send("New Minesweeper high score!")
 
                 embed = discord.Embed(title="Minesweeper", color=discord.Color.green())
                 embed.add_field(name="You Stopped", value=f"{ctx.author.mention} You have won {total} gaybucks",
                                 inline=False)
-                embed.add_field(name="Balance", value=f"You now have {check_funds(ctx, bal_check=True)} gaybucks",
+                embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks",
                                 inline=False)
                 await ctx.send(embed=embed)
                 return
@@ -506,12 +487,12 @@ class Gambling(commands.Cog):
                 field = field.replace(bombs[0], '💣')
                 await field_msg.edit(content=field)
 
-                await update_bal(ctx, ctx.author, ctx.author.guild, amt=-bet)
+                await mysql.update_balance(ctx, ctx.author, -bet)
 
                 embed = discord.Embed(title="Minesweeper", color=discord.Color.red())
                 embed.add_field(name="KABOOM!", value=f"{ctx.author.mention} You lost {bet} gaybucks",
                                 inline=False)
-                embed.add_field(name="Balance", value=f"You now have {check_funds(ctx, bal_check=True)} gaybucks",
+                embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks",
                                 inline=False)
                 await ctx.send(embed=embed)
                 return
@@ -531,14 +512,14 @@ class Gambling(commands.Cog):
                     field = field.replace(bombs[i], '💣')
                 await field_msg.edit(content=field)
 
-                await update_bal(ctx, ctx.author, ctx.author.guild, amt=total)
-                if check_leaderboard(ctx, "Minesweeper", ctx.author, total):
+                await mysql.update_balance(ctx, ctx.author, total)
+                if mysql.check_leaderboard("Minesweeper", ctx.author, total):
                     await ctx.send("New Minesweeper high score!")
 
                 embed = discord.Embed(title="Minesweeper", color=discord.Color.green())
                 embed.add_field(name="You Beat the Game!", value=f"{ctx.author.mention} You have won {total} gaybucks",
                                 inline=False)
-                embed.add_field(name="Balance", value=f"You now have {check_funds(ctx, bal_check=True)} gaybucks",
+                embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks",
                                 inline=False)
                 await ctx.send(embed=embed)
                 return

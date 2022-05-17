@@ -2,8 +2,8 @@ import discord
 from discord.ext import commands
 import asyncio
 
-from utils import mysql
-from utils import checks
+from .utils import mysql
+from .utils import checks
 
 
 class Shop(commands.Cog):
@@ -17,7 +17,7 @@ class Shop(commands.Cog):
             raise commands.CommandError(f"{ctx.author.mention} Try `.help` + `[the function name]` "
                                         f"to get more info on how to use this command.")
 
-        await mysql.update_bal(ctx, ctx.author, -50)
+        await mysql.update_balance(ctx, ctx.author, -50)
 
         role = discord.utils.get(ctx.guild.roles, name="Bitch")
         await user.add_roles(role)
@@ -44,7 +44,7 @@ class Shop(commands.Cog):
             raise commands.CommandError(f"{ctx.author.mention} Try `.help` + `[the function name]` "
                                         f"to get more info on how to use this command.")
 
-        await mysql.update_bal(ctx, ctx.author, -100)
+        await mysql.update_balance(ctx, ctx.author, -100)
 
         role = discord.utils.get(ctx.guild.roles, name="Banished")
         await user.add_roles(role)
@@ -71,14 +71,14 @@ class Shop(commands.Cog):
 
         await ctx.author.add_roles(role)
 
-        await mysql.update_bal(ctx, ctx.author, -200)
+        await mysql.update_balance(ctx, ctx.author, -200)
 
         await asyncio.sleep(60*30)
         await ctx.author.remove_roles(role)
 
     @commands.command(hidden=True)
     async def give_me_money(self, ctx):
-        await mysql.update_bal(ctx, ctx.author, 1000000)
+        await mysql.update_balance(ctx, ctx.author, 1000000)
         await ctx.send(f"moneys: {mysql.get_balance(ctx.author)}")
 
     @commands.command(brief="The Big Gay will now recognize you as a higher being.",
@@ -88,7 +88,7 @@ class Shop(commands.Cog):
         if "Daddy" in [x.name for x in ctx.author.roles]:
             raise commands.CommandError(f"{ctx.author.mention} You're already a daddy! What more do you want?")
 
-        await mysql.update_bal(ctx, ctx.author, -1000)
+        await mysql.update_balance(ctx, ctx.author, -1000)
 
         role = discord.utils.get(ctx.guild.roles, name="Daddy")
         await ctx.author.add_roles(role)
