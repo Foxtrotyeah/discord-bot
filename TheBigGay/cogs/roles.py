@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-from mysqlx import FilterableStatement
 
 
 # creates the 'banished' role
@@ -99,7 +98,7 @@ class Roles(commands.Cog):
         guilds = self.bot.guilds
 
         for guild in guilds:
-            # Check if roles required for the bot are present
+            # Check for roles used by the bot
             roles = [x.name for x in guild.roles]
             for role, function in self.needed_roles.items():
                 if role not in roles:
