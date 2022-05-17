@@ -12,26 +12,45 @@ config = {
     "host": os.environ['MYSQL_HOST'],
     "user": os.environ['MYSQL_USER'],
     "password": os.environ['MYSQL_PASSWORD'],
-    "database": os.environ['MYSQL_DATABASE']
+    "database": os.environ['MYSQL_DATABASE'],
+    "connect_timeout": 86400
 }
 
 timezone = pytz.timezone("US/Pacific")
+
+db = pymysql.connect(**config)
+cursor = db.cursor()
 
 # TODO Useful?
 # cursor.execute("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
 
 
-def execute(sql: str, commit: bool = False):
-    db = pymysql.connect(**config)
-    cursor = db.cursor()
+# def ping():
+#     while True:
+#         try: 
+#             db.ping()
+#             break
+#         except Exception as e:
+#             print(e)
+#             db.ping(True)
 
+# TODO Implement this everywhere
+def _test_connection(function: callable):
+    while True:
+        try:
+            function()
+            break
+        except Exception as e:
+            print(e)
+            db.ping(reconnect=True)
+
+
+def execute(sql: str, commit: bool = False) -> tuple[tuple, ...]:
     cursor.execute(sql)
-    result = cursor.fetchone()
+    result = cursor.fetchall()
 
     if commit:
         db.commit()
-
-    db.close()
 
     return result
 
@@ -71,33 +90,25 @@ def initialize_guild(guild: discord.Guild):
         create_leaderboard_table(guild.id)
 
 
-def _check_exists(table: str, user_id: str):
-	db = pymysql.connect(**config)
-	cursor = db.cursor()
-
-	cursor.execute(f"SELECT EXISTS(SELECT * from {table} WHERE user_id={user_id})")
-
-	if cursor.fetchone()[0] != 1:
-		cursor.execute(f"INSERT into {table}(user_id, balance, subsidy_date) "
-						f"VALUES ({user_id}, 50, %s)", (datetime.now(timezone).date(),))
-		db.commit()
-
-	db.close()
+def _check_status(table: str, user_id: str):
+    _test_connection(lambda: cursor.execute(f"SELECT EXISTS(SELECT * from {table} WHERE user_id={user_id})"))
+    
+    if cursor.fetchone()[0] != 1:
+        cursor.execute(
+            f"INSERT into {table}(user_id, balance, subsidy_date) "
+			f"VALUES ({user_id}, 50, %s)", (datetime.now(timezone).date(),)
+        )
+        db.commit()
 
 
 def _get_user_data(member: discord.Member):
     table = str(member.guild.id) + "_economy"
     user_id = str(member.id)
 
-    _check_exists(table, user_id)
-
-    db = pymysql.connect(**config)
-    cursor = db.cursor()
+    _check_status(table, user_id)
 
     cursor.execute(f"SELECT * from {table} WHERE user_id={user_id}")
     result = cursor.fetchone()
-
-    db.close()
 
     return result
 
@@ -121,13 +132,8 @@ def check_subsidy(member: discord.Member):
 def get_economy(guild: discord.Guild):
     table = str(guild.id) + "_economy"
 
-    db = pymysql.connect(**config)
-    cursor = db.cursor()
-
     cursor.execute(f"SELECT user_id, balance from {table}")
     result = cursor.fetchall()
-
-    db.close()
 
     return result
 
@@ -137,10 +143,7 @@ async def update_balance(ctx, member: discord.Member, amt: int):
     table = str(member.guild.id) + "_economy"
     user_id = str(member.id)
 
-    _check_exists(table, user_id)
-
-    db = pymysql.connect(**config)
-    cursor = db.cursor()
+    _check_status(table, user_id)
 
     cursor.execute(f"SELECT * from {table} WHERE user_id={user_id}")
     result = cursor.fetchone()
@@ -150,8 +153,6 @@ async def update_balance(ctx, member: discord.Member, amt: int):
     cursor.execute(f"UPDATE {table} SET balance={new_bal} WHERE user_id={user_id}")
     db.commit()
 
-    db.close()
-
     if new_bal == 0:
         await ctx.send(f"{member.mention} is broke! LOL")
 
@@ -160,10 +161,7 @@ def subsidize(member: discord.Member):
     table = str(member.guild.id) + "_economy"
     user_id = str(member.id)
 
-    _check_exists(table, user_id)
-
-    db = pymysql.connect(**config)
-    cursor = db.cursor()
+    _check_status(table, user_id)
 
     cursor.execute(f"SELECT * from {table} WHERE user_id={user_id}")
     result = cursor.fetchone()
@@ -177,14 +175,9 @@ def subsidize(member: discord.Member):
     )
     db.commit()
 
-    db.close()
-
 
 def get_leaderboard(guild: discord.Guild):
     table = str(guild.id) + "_leaderboard"
-
-    db = pymysql.connect(**config)
-    cursor = db.cursor()
 
     cursor.execute(f"SELECT game, user_id, score, date from {table}")
 
@@ -193,9 +186,6 @@ def get_leaderboard(guild: discord.Guild):
 
 def check_leaderboard(game: str, member: discord.Member, score: int) -> bool:
     table = str(member.guild.id) + "_leaderboard"
-
-    db = pymysql.connect(**config)
-    cursor = db.cursor()
 
     cursor.execute(f"SELECT EXISTS(SELECT * from {table} WHERE game='{game}')")
 
