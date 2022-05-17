@@ -14,7 +14,7 @@ except:
 
 command_prefix = '.'
 
-description = "Hey there~ I'm a bot written by my daddy Foxtrot."
+description = "Hey there~ I'm a bot written by my daddy, Foxtrot."
 
 help_command = commands.DefaultHelpCommand(no_category="Default Commands")
 
@@ -71,6 +71,9 @@ class GayBot(commands.AutoShardedBot):
                 print(e)
     
     async def process_commands(self, message: discord.Message):
+        if message.author.bot:
+            return
+
         ctx = await self.get_context(message)
 
         bucket = self.spam_control.get_bucket(message)
