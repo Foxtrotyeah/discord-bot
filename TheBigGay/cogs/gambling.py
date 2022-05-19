@@ -67,7 +67,7 @@ class Gambling(commands.Cog):
     @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def odds(self, ctx, bet: int):
-        checks.has_funds(bet)
+        checks.has_funds(ctx.author, bet)
 
         # Initial prompt to get the 1:? odds
         embed = discord.Embed(title="Odds",
@@ -146,7 +146,7 @@ class Gambling(commands.Cog):
     @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def cardcut(self, ctx, member: discord.Member, bet: int):
-        checks.has_funds(bet)
+        checks.has_funds(ctx.author, bet)
 
         player1 = ctx.author
         player2 = member
@@ -169,7 +169,7 @@ class Gambling(commands.Cog):
             answer = str(msg.content).lower()
             if "yes" in answer:
                 try:
-                    if checks.has_funds(bet, member=msg.author):
+                    if checks.has_funds(msg.author, bet):
                         return True
                     else:
                         return False
@@ -263,7 +263,7 @@ class Gambling(commands.Cog):
         if 1 > guess > 5:
             return await ctx.send(f"{ctx.author.mention} Your guess must be a number from 1-5.")
         
-        checks.has_funds(bet)
+        checks.has_funds(ctx.author, bet)
 
         horses = [
             "🏁- - - - - 🏇**1.**",
@@ -340,7 +340,7 @@ class Gambling(commands.Cog):
     @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def crash(self, ctx, bet: int):
-        checks.has_funds(bet)
+        checks.has_funds(ctx.author, bet)
 
         multiplier = 1.0
         profit = (bet * multiplier) - bet
@@ -405,7 +405,7 @@ class Gambling(commands.Cog):
     @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def minesweeper(self, ctx, bet: int):
-        checks.has_funds(bet)
+        checks.has_funds(ctx.author, bet)
 
         field = "``` -------------------" \
                 "\n| A1 | B1 | C1 | D1 |" \
