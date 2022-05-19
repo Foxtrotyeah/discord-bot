@@ -11,12 +11,13 @@ class Shop(commands.Cog):
         self.bot = bot
 
     @commands.command(brief="Deafens a user.", description="Deafens a user for 60 seconds.", hidden=True)
-    @checks.has_funds(50)
     async def mute(self, ctx, user: discord.Member = None):
         if not user:
             raise commands.CommandError(f"{ctx.author.mention} Try `.help` + `[the function name]` "
                                         f"to get more info on how to use this command.")
 
+        checks.has_funds(ctx.author, 50)
+        
         await mysql.update_balance(ctx, ctx.author, -50)
 
         role = discord.utils.get(ctx.guild.roles, name="Bitch")
@@ -38,11 +39,12 @@ class Shop(commands.Cog):
 
     # TODO Add description?
     @commands.command(hidden=True)
-    @checks.has_funds(100)
     async def boot(self, ctx, user: discord.Member = None):
         if not user:
             raise commands.CommandError(f"{ctx.author.mention} Try `.help` + `[the function name]` "
                                         f"to get more info on how to use this command.")
+    
+        checks.has_funds(ctx.author, 100)
 
         await mysql.update_balance(ctx, ctx.author, -100)
 
@@ -61,12 +63,13 @@ class Shop(commands.Cog):
                       description="The user receives basically every permission that an admin has. "
                                   "Lasts for 5 minutes.",
                       hidden=True)
-    @checks.has_funds(200)
     async def admin(self, ctx):
         if "Admin Lite" in [x.name for x in ctx.author.roles]:
             raise commands.CommandError(f"{ctx.author.mention} "
                                         f"You still have more time on your current admin privileges!")
 
+        checks.has_funds(ctx.author, 200)
+        
         role = discord.utils.get(ctx.guild.roles, name="Admin Lite")
 
         await ctx.author.add_roles(role)
@@ -83,11 +86,12 @@ class Shop(commands.Cog):
 
     @commands.command(brief="The Big Gay will now recognize you as a higher being.",
                       description="This privilege is permanent.", hidden=True)
-    @checks.has_funds(1000)
     async def daddy(self, ctx):
         if "Daddy" in [x.name for x in ctx.author.roles]:
             raise commands.CommandError(f"{ctx.author.mention} You're already a daddy! What more do you want?")
 
+        checks.has_funds(ctx.author, 1000)
+        
         await mysql.update_balance(ctx, ctx.author, -1000)
 
         role = discord.utils.get(ctx.guild.roles, name="Daddy")
