@@ -2,13 +2,9 @@ import random
 import asyncio
 import discord
 from discord.ext import commands
-import time
 
 from .utils import mysql
 from .utils import checks
-
-
-# TODO Commands no worky
 
 
 class Gambling(commands.Cog):
