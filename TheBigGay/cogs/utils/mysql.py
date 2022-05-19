@@ -101,7 +101,7 @@ def _check_status(table: str, user_id: str):
         db.commit()
 
 
-def _get_user_data(member: discord.Member):
+def _get_user_data(member: discord.Member) -> tuple:
     table = str(member.guild.id) + "_economy"
     user_id = str(member.id)
 
@@ -113,13 +113,13 @@ def _get_user_data(member: discord.Member):
     return result
 
 
-def get_balance(member: discord.Member):
+def get_balance(member: discord.Member) -> int:
     result = _get_user_data(member)
 
     return result[1]
 
 
-def check_subsidy(member: discord.Member):
+def check_subsidy(member: discord.Member) -> bool:
     result = _get_user_data(member)
 
     if result[1] < 100 and result[2].date() < datetime.now(timezone).date():
@@ -129,7 +129,7 @@ def check_subsidy(member: discord.Member):
 
 
 # Get all economy data
-def get_economy(guild: discord.Guild):
+def get_economy(guild: discord.Guild) -> tuple[tuple, ...]:
     table = str(guild.id) + "_economy"
 
     _test_connection(lambda: cursor.execute(f"SELECT user_id, balance from {table}"))
@@ -177,7 +177,7 @@ def subsidize(member: discord.Member):
     db.commit()
 
 
-def get_leaderboard(guild: discord.Guild):
+def get_leaderboard(guild: discord.Guild) -> tuple[tuple, ...]:
     table = str(guild.id) + "_leaderboard"
 
     _test_connection(lambda: cursor.execute(f"SELECT game, user_id, score, date from {table}"))
