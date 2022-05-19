@@ -25,7 +25,7 @@ cursor = db.cursor()
 # cursor.execute("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
 
 
-# def ping():
+# def _ping():
 #     while True:
 #         try: 
 #             db.ping()
@@ -34,19 +34,19 @@ cursor = db.cursor()
 #             print(e)
 #             db.ping(True)
 
-# TODO Implement this everywhere
+
 def _test_connection(function: callable):
     while True:
         try:
             function()
             break
-        except Exception as e:
-            print(e)
+        except pymysql.OperationalError:
             db.ping(reconnect=True)
 
 
-def execute(sql: str, commit: bool = False) -> tuple[tuple, ...]:
-    cursor.execute(sql)
+def _execute(sql: str, commit: bool = False) -> tuple[tuple, ...]:
+    _test_connection(lambda: cursor.execute(sql))
+
     result = cursor.fetchall()
 
     if commit:
@@ -61,7 +61,7 @@ def create_economy_table(guild_id: int):
         "balance INTEGER(9) NOT NULL, "\
         "subsidy_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,"\
         "PRIMARY KEY (user_id))" 
-    execute(sql, commit=True)
+    _execute(sql, commit=True)
     
 
 def create_leaderboard_table(guild_id: int):
@@ -71,19 +71,19 @@ def create_leaderboard_table(guild_id: int):
         "score INTEGER(9) NOT NULL,"\
         "date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,"\
         "PRIMARY KEY (game))"
-    execute(sql, commit=True)
+    _execute(sql, commit=True)
 
 
 def initialize_guild(guild: discord.Guild):
     sql = "SHOW TABLES LIKE '{}_economy'".format(str(guild.id))
-    result = execute(sql)
+    result = _execute(sql)
     
     if not result:
         print(f"Creating economy table for guild, {guild.id}")
         create_economy_table(guild.id)
 
     sql = "SHOW TABLES LIKE '{}_leaderboard'".format(str(guild.id))
-    result = execute(sql)
+    result = _execute(sql)
 
     if not result:
         print(f"Creating leaderboard table for guild, {guild.id}")
@@ -132,7 +132,8 @@ def check_subsidy(member: discord.Member):
 def get_economy(guild: discord.Guild):
     table = str(guild.id) + "_economy"
 
-    cursor.execute(f"SELECT user_id, balance from {table}")
+    _test_connection(lambda: cursor.execute(f"SELECT user_id, balance from {table}"))
+
     result = cursor.fetchall()
 
     return result
@@ -179,7 +180,7 @@ def subsidize(member: discord.Member):
 def get_leaderboard(guild: discord.Guild):
     table = str(guild.id) + "_leaderboard"
 
-    cursor.execute(f"SELECT game, user_id, score, date from {table}")
+    _test_connection(lambda: cursor.execute(f"SELECT game, user_id, score, date from {table}"))
 
     return cursor.fetchall()
 
@@ -187,7 +188,7 @@ def get_leaderboard(guild: discord.Guild):
 def check_leaderboard(game: str, member: discord.Member, score: int) -> bool:
     table = str(member.guild.id) + "_leaderboard"
 
-    cursor.execute(f"SELECT EXISTS(SELECT * from {table} WHERE game='{game}')")
+    _test_connection(lambda: cursor.execute(f"SELECT EXISTS(SELECT * from {table} WHERE game='{game}')"))
 
     if cursor.fetchone()[0] == 1:
         cursor.execute(f"SELECT * from {table} WHERE game='{game}'")
