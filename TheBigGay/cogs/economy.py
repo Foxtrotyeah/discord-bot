@@ -226,7 +226,7 @@ class Economy(commands.Cog):
         # except ValueError:
         #     return ctx.send(f"{ctx.author.mention} Your donation must be an integer (whole) number.")
 
-        checks.has_funds(amt)
+        checks.has_funds(ctx.author, amt)
 
         await mysql.update_balance(ctx, ctx.author, -amt)
         await mysql.update_balance(ctx, member, amt)
