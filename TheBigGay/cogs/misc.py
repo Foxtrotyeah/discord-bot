@@ -17,7 +17,8 @@ class Miscellaneous(commands.Cog):
         await ctx.channel.send("Deleted {} message(s)".format(len(deleted)))
 
     @commands.command(brief="The bot's current latency.",
-                      description="Gives the latency between the bot and server in ms.")
+                      description="Gives the latency between the bot and server in ms.",
+                      hidden=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def ping(self, ctx):
         await ctx.send(f"Pong! My latency right now is {round(self.bot.latency * 1000)}ms")
