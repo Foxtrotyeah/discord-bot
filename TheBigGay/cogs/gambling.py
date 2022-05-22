@@ -13,7 +13,11 @@ class Gambling(commands.Cog):
 
     async def cog_command_error(self, ctx, error):
         if isinstance(error, commands.CheckFailure):
-            await ctx.send(f"{ctx.author.mention} Gambling is only allowed in the gambling hall channels.")
+            await ctx.message.delete()
+            return await ctx.send(f"{ctx.author.mention} Gambling is only allowed in the gambling hall channels.", delete_after=10)
+
+        elif isinstance(error, commands.CommandError):
+            return await ctx.send(f"{ctx.author.mention} {error}")
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -50,6 +54,12 @@ class Gambling(commands.Cog):
             position=0
         )
 
+    # TODO Delete messages that are not commands
+    @commands.Cog.listener()
+    async def on_message(self, msg: discord.Message):
+        if msg.author.bot:
+            return
+
     @commands.command(brief="Show the leaderboard for gambling games",
                       description="Check who has won the most money in each of the gambling games.")
     @checks.is_gambling_category()
@@ -71,7 +81,7 @@ class Gambling(commands.Cog):
     @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def odds(self, ctx, bet: int):
-        checks.has_funds(ctx.author, bet)
+        checks.is_valid_bet(ctx.author, bet)
 
         # Initial prompt to get the 1:? odds
         embed = discord.Embed(title="Odds",
@@ -145,19 +155,20 @@ class Gambling(commands.Cog):
 
         await ctx.send(embed=embed)
 
+    # TODO Change response wait to reactions rather than yes/no
     @commands.command(brief="(2 Players) Bet to see who wins with a higher card",
                       discription="Bet with a friend to see who wins with a higher card.")
     @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def cardcut(self, ctx, member: discord.Member, bet: int):
-        checks.has_funds(ctx.author, bet)
+        checks.is_valid_bet(ctx.author, bet)
 
         player1 = ctx.author
         player2 = member
         players = [player1, player2]
 
         if player1.id == player2.id:
-            raise commands.CommandError(f"{ctx.author.mention} You can't just play with yourself in front of everyone!")
+            return await ctx.send(f"{ctx.author.mention} You can't just play with yourself in front of everyone!")
 
         # Initial prompt to get player 2's consent
         embed = discord.Embed(title="Card Cutting",
@@ -173,7 +184,7 @@ class Gambling(commands.Cog):
             answer = str(msg.content).lower()
             if "yes" in answer:
                 try:
-                    if checks.has_funds(msg.author, bet):
+                    if checks.is_valid_bet(msg.author, bet):
                         return True
                     else:
                         return False
@@ -267,7 +278,7 @@ class Gambling(commands.Cog):
         if 1 > guess > 5:
             return await ctx.send(f"{ctx.author.mention} Your guess must be a number from 1-5.")
         
-        checks.has_funds(ctx.author, bet)
+        checks.is_valid_bet(ctx.author, bet)
 
         horses = [
             "🏁- - - - - 🏇**1.**",
@@ -344,7 +355,7 @@ class Gambling(commands.Cog):
     @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def crash(self, ctx, bet: int):
-        checks.has_funds(ctx.author, bet)
+        checks.is_valid_bet(ctx.author, bet)
 
         multiplier = 1.0
         profit = (bet * multiplier) - bet
@@ -409,7 +420,7 @@ class Gambling(commands.Cog):
     @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def minesweeper(self, ctx, bet: int):
-        checks.has_funds(ctx.author, bet)
+        checks.is_valid_bet(ctx.author, bet)
 
         field = "``` -------------------" \
                 "\n| A1 | B1 | C1 | D1 |" \
