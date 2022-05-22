@@ -33,7 +33,6 @@ intents = discord.Intents(
 extensions = (
     'audio',
     'economy',
-    'events',
     'gambling',
     'misc',
     'polls',
@@ -71,11 +70,11 @@ class GayBot(commands.AutoShardedBot):
                 print(e)
     
     async def process_commands(self, message: discord.Message):
-        if message.author.bot:
+        if message.author.bot or not message.content.startswith(command_prefix):
             return
 
         ctx = await self.get_context(message)
-
+        
         roles = [x.name for x in message.author.roles]
         if "Daddy" in roles:
             await ctx.send("*yes, daddy~*")
@@ -100,6 +99,10 @@ class GayBot(commands.AutoShardedBot):
     async def on_command_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send_help(ctx.command)
+
+        # TODO Temporary. Redo cooldowns globally
+        elif isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(f"{ctx.author.mention} Command on cooldown.")
 
     async def on_ready(self):
         game = discord.Game("with a DILF | .help")
