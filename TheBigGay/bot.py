@@ -75,10 +75,12 @@ class GayBot(commands.AutoShardedBot):
 
         ctx = await self.get_context(message)
         
-        roles = [x.name for x in message.author.roles]
-        if "Daddy" in roles:
-            await ctx.send("*yes, daddy~*")
+        # 'Daddy' role functionality
+        # roles = [x.name for x in message.author.roles]
+        # if "Daddy" in roles:
+        #     await ctx.send("*yes, daddy~*")
 
+        # Spam control
         bucket = self.spam_control.get_bucket(message)
         retry_after = bucket.update_rate_limit()
 
@@ -96,13 +98,9 @@ class GayBot(commands.AutoShardedBot):
         # Continue command execution
         await self.invoke(ctx)
 
-    async def on_command_error(self, ctx, error):
+    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send_help(ctx.command)
-
-        # TODO Temporary. Redo cooldowns globally
-        elif isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(f"{ctx.author.mention} Command on cooldown.")
 
     async def on_ready(self):
         game = discord.Game("with a DILF | .help")
