@@ -4,7 +4,10 @@ from discord.ext import commands
 from . import mysql
 
 
-def has_funds(member: discord.Member, amt: int):
+def is_valid_bet(member: discord.Member, amt: int):
+    if amt <= 0:
+        raise commands.CommandError(f"{member.mention} You have to place a nonzero bet.")
+
     if mysql.get_balance(member) >= amt:
         return True
     else:
@@ -12,7 +15,7 @@ def has_funds(member: discord.Member, amt: int):
 
 
 def is_gambling_category():
-    def pred(ctx) -> bool:
+    def pred(ctx: commands.Context) -> bool:
         if ctx.channel.category.name != "Gambling":
             return False
         else:
