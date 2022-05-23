@@ -6,9 +6,6 @@ from datetime import datetime
 import pytz
 
 
-# TODO Typecheck all of this. Put in function suggestions -> etc
-
-
 config = {
     "host": os.environ['MYSQL_HOST'],
     "user": os.environ['MYSQL_USER'],
@@ -75,6 +72,7 @@ def create_leaderboard_table(guild_id: int):
     _execute(sql, commit=True)
 
 
+# Check guild for having economy and leaderboard tables in the database
 def initialize_guild(guild: discord.Guild):
     sql = "SHOW TABLES LIKE '{}_economy'".format(str(guild.id))
     result = _execute(sql)
@@ -118,15 +116,6 @@ def get_balance(member: discord.Member) -> int:
     result = _get_user_data(member)
 
     return result[1]
-
-
-def check_subsidy(member: discord.Member) -> bool:
-    result = _get_user_data(member)
-
-    if result[1] < 100 and result[2].date() < datetime.now(timezone).date():
-        return True
-    else:
-        return False
 
 
 # Get all economy data
