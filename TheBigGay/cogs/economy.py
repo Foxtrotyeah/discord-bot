@@ -18,6 +18,14 @@ class Economy(commands.Cog):
             (".daddy", 1000, "Receive the permanent title of 'Daddy'.")
         ]
 
+    async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError): 
+        if isinstance(error, checks.WrongChannel):                
+            await ctx.message.delete()
+            return await ctx.send(f"{ctx.author.mention} {error}", delete_after=10)
+
+        else:
+            return await ctx.send(f"{ctx.author.mention} {error}")
+
     @commands.Cog.listener()
     async def on_ready(self):
         guilds = self.bot.guilds
@@ -35,22 +43,17 @@ class Economy(commands.Cog):
                       description="You must have less than 50 gaybucks in your account to be eligible. "
                                   "You can also only receive a subsidy once per day.")
     @checks.is_gambling_category()
+    @checks.check_subsidy()
     @commands.cooldown(1, 60, commands.BucketType.user)
     async def subsidy(self, ctx: commands.Context):
-        if not mysql.check_subsidy(ctx.author):
-            return await ctx.send(
-                f"{ctx.author.mention}, you are not eligible for a subsidy. "
-                f"Either you have more than 100 gaybucks in your account, "
-                f"or your sugar daddy has already bailed you out once today."
-            )
+        mysql.subsidize(ctx.author)
 
-        await mysql.subsidize(ctx.author)
         await ctx.send(f"{ctx.author.mention}, 50 gaybucks have been added to your account, "
-                       f"courtesy of your sugar daddy 😉. (You now have {mysql.get_balance(ctx, bal_check=True)} GB)")
+                       f"courtesy of your sugar daddy 😉 (You now have {mysql.get_balance(ctx.author)} GB)")
 
+    # TODO only show top 10 or something. Too long
     @commands.command(brief="Check the current economy standings.",
                       description="Shows each member's current balance in gaybucks.")
-    @checks.is_gambling_category()
     @commands.cooldown(1, 60, commands.BucketType.guild)
     async def economy(self, ctx: commands.Context):
         economy = mysql.get_economy(ctx.guild)
