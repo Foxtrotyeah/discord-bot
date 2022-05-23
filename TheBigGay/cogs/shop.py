@@ -10,13 +10,31 @@ class Shop(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(brief="Deafens a user.", description="Deafens a user for 60 seconds.", hidden=True)
-    async def mute(self, ctx, user: discord.Member = None):
-        if not user:
-            raise commands.CommandError(f"{ctx.author.mention} Try `.help` + `[the function name]` "
-                                        f"to get more info on how to use this command.")
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if message.author.bot or message.content.startswith('.'):
+            return
 
-        checks.has_funds(ctx.author, 50)
+        if str(message.channel.type) == "private":
+            guilds = message.author.mutual_guilds
+            for guild in guilds:
+                member = discord.utils.get(guild.members, name=message.author.name)
+                roles = [x.name for x in member.roles]
+                if "Banished" not in roles:
+                    continue
+
+                if "please" not in message.content.lower():
+                    return await message.channel.send("What's the magic word?")
+                elif "daddy" not in message.content.lower():
+                    return await message.channel.send("That's 'daddy' to you.")
+                else:
+                    role = discord.utils.get(guild.roles, name="Banished")
+                    await member.remove_roles(role)
+                    return await message.channel.send("Good boy. You can reconnect to voice channels now!")
+
+    @commands.command(brief="Deafens a user.", description="Deafens a user for 60 seconds.", hidden=True)
+    async def mute(self, ctx: commands.Context, user: discord.Member = None):
+        checks.is_valid_bet(ctx.author, 50)
         
         await mysql.update_balance(ctx, ctx.author, -50)
 
@@ -39,36 +57,33 @@ class Shop(commands.Cog):
 
     # TODO Add description?
     @commands.command(hidden=True)
-    async def boot(self, ctx, user: discord.Member = None):
-        if not user:
-            raise commands.CommandError(f"{ctx.author.mention} Try `.help` + `[the function name]` "
-                                        f"to get more info on how to use this command.")
-    
-        checks.has_funds(ctx.author, 100)
+    async def boot(self, ctx: commands.Context, member: discord.Member = None):    
+        checks.is_valid_bet(ctx.author, 100)
 
         await mysql.update_balance(ctx, ctx.author, -100)
 
         role = discord.utils.get(ctx.guild.roles, name="Banished")
-        await user.add_roles(role)
+        await member.add_roles(role)
         try:
-            await user.move_to(None)
+            await member.move_to(None)
         except Exception as e:
             print(e)
 
-        await ctx.send(f"{user.mention} Begone, THOT! Check your DM's to get your privileges back 😉")
+        await ctx.send(f"{member.mention} Begone, THOT! Check your DM's to get your privileges back 😉")
 
-        await user.send("Looks like you got put in time out. If you want back in, you'd better beg for daddy.")
+        await member.send("Looks like you got put in time out. If you want back in, you'd better beg for daddy.")
 
     @commands.command(brief="Gives admin-like control to a user.",
                       description="The user receives basically every permission that an admin has. "
                                   "Lasts for 5 minutes.",
                       hidden=True)
-    async def admin(self, ctx):
+    async def admin(self, ctx: commands.Context):
         if "Admin Lite" in [x.name for x in ctx.author.roles]:
-            raise commands.CommandError(f"{ctx.author.mention} "
-                                        f"You still have more time on your current admin privileges!")
+            return await ctx.send(
+                f"{ctx.author.mention} You still have more time on your current admin privileges!"
+            )
 
-        checks.has_funds(ctx.author, 200)
+        checks.is_valid_bet(ctx.author, 200)
         
         role = discord.utils.get(ctx.guild.roles, name="Admin Lite")
 
@@ -79,18 +94,13 @@ class Shop(commands.Cog):
         await asyncio.sleep(60*30)
         await ctx.author.remove_roles(role)
 
-    @commands.command(hidden=True)
-    async def give_me_money(self, ctx):
-        await mysql.update_balance(ctx, ctx.author, 1000000)
-        await ctx.send(f"moneys: {mysql.get_balance(ctx.author)}")
-
     @commands.command(brief="The Big Gay will now recognize you as a higher being.",
                       description="This privilege is permanent.", hidden=True)
-    async def daddy(self, ctx):
+    async def daddy(self, ctx: commands.Context):
         if "Daddy" in [x.name for x in ctx.author.roles]:
-            raise commands.CommandError(f"{ctx.author.mention} You're already a daddy! What more do you want?")
+            return await ctx.send(f"{ctx.author.mention} You're already a daddy! What more do you want?")
 
-        checks.has_funds(ctx.author, 1000)
+        checks.is_valid_bet(ctx.author, 1000)
         
         await mysql.update_balance(ctx, ctx.author, -1000)
 
