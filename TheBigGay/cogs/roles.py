@@ -3,62 +3,62 @@ from discord.ext import commands
 
 
 # creates the 'banished' role
-async def banish_role(guild):
+async def banish_role(guild: discord.Guild):
     role = await guild.create_role(name="Banished", hoist=True)
     for category in guild.categories:
         await category.set_permissions(role, connect=False)
 
 
 # creates the 'bitch' role
-async def bitch_role(guild):
+async def bitch_role(guild: discord.Guild):
     role = await guild.create_role(name="Bitch", hoist=True)
     for category in guild.categories:
         await category.set_permissions(role, speak=False)
 
 
 # creates the 'admin lite' role
-async def adminlite_role(guild):
+async def adminlite_role(guild: discord.Guild):
     perms = discord.Permissions(1110751554672)
     await guild.create_role(name="Admin Lite", hoist=True, color=discord.Color.red(), permissions=perms)
 
 
 # creates the 'daddy' role
-async def daddy_role(guild):
+async def daddy_role(guild: discord.Guild):
     await guild.create_role(name="Daddy", color=discord.Color.red())
 
 
 # creates the 'he/him' role
-async def he_role(guild):
+async def he_role(guild: discord.Guild):
     await guild.create_role(name="he/him", color=discord.Color.blue())
 
 
 # creates the 'she/her' role
-async def she_role(guild):
+async def she_role(guild: discord.Guild):
     await guild.create_role(name="she/her", color=discord.Color.red())
 
 
 # creates the 'they/them' role
-async def they_role(guild):
+async def they_role(guild: discord.Guild):
     await guild.create_role(name="they/them", color=discord.Color.purple())
 
 
 # creates the 'gamer' role
-async def gamer_role(guild):
+async def gamer_role(guild: discord.Guild):
     await guild.create_role(name="Game Notified", color=discord.Color.gold())
 
 
 # creates the 'casual' role
-async def casual_role(guild):
+async def casual_role(guild: discord.Guild):
     await guild.create_role(name="casual", color=discord.Color.orange())
 
 
 # creates the 'gremlin' role
-async def gremlin_role(guild):
+async def gremlin_role(guild: discord.Guild):
     await guild.create_role(name="gremlin", color=discord.Color.purple())
 
 
 # creates the 'shitter' role
-async def shitter_role(guild):
+async def shitter_role(guild: discord.Guild):
     await guild.create_role(name="shitter", color=discord.Color.dark_blue())
 
 
@@ -110,7 +110,7 @@ class Roles(commands.Cog):
             if "get-your-roles" not in channels:
                 await self.create_roles_channel(guild)
 
-    async def create_roles_channel(self, guild):
+    async def create_roles_channel(self, guild: discord.Guild):
         welcome_category = discord.utils.get(guild.categories, name="Welcome")
         if not welcome_category:
             welcome_category = await guild.create_category("Welcome", position=0)
@@ -166,7 +166,7 @@ class Roles(commands.Cog):
             await funny_message.add_reaction(key)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload):
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.member.bot:
             return
 
@@ -189,7 +189,7 @@ class Roles(commands.Cog):
             await payload.member.add_roles(role)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_remove(self, payload):
+    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         guild = self.bot.get_guild(payload.guild_id)
         user = guild.get_member(payload.user_id)
         if user.bot:

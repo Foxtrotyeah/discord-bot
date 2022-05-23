@@ -1,4 +1,5 @@
 import discord
+from discord.ext import commands
 import pymysql
 import os
 from datetime import datetime
@@ -140,7 +141,7 @@ def get_economy(guild: discord.Guild) -> tuple[tuple, ...]:
 
 
 # Updates a user's balance
-async def update_balance(ctx, member: discord.Member, amt: int):
+async def update_balance(ctx: commands.Context, member: discord.Member, amt: int):
     table = str(member.guild.id) + "_economy"
     user_id = str(member.id)
 

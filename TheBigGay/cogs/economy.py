@@ -27,7 +27,7 @@ class Economy(commands.Cog):
 
     @commands.command(brief="Get your current balance.", description="Retrieve your current balance in gaybucks.")
     @commands.cooldown(1, 15, commands.BucketType.user)
-    async def balance(self, ctx):
+    async def balance(self, ctx: commands.Context):
         result = mysql.get_balance(ctx.author)
         await ctx.send(f"{ctx.author.mention}, your balance is {result} gaybucks.")
 
@@ -36,7 +36,7 @@ class Economy(commands.Cog):
                                   "You can also only receive a subsidy once per day.")
     @checks.is_gambling_category()
     @commands.cooldown(1, 60, commands.BucketType.user)
-    async def subsidy(self, ctx):
+    async def subsidy(self, ctx: commands.Context):
         if not mysql.check_subsidy(ctx.author):
             return await ctx.send(
                 f"{ctx.author.mention}, you are not eligible for a subsidy. "
@@ -52,7 +52,7 @@ class Economy(commands.Cog):
                       description="Shows each member's current balance in gaybucks.")
     @checks.is_gambling_category()
     @commands.cooldown(1, 60, commands.BucketType.guild)
-    async def economy(self, ctx):
+    async def economy(self, ctx: commands.Context):
         economy = mysql.get_economy(ctx.guild)
         sorted_economy = sorted(economy, key=lambda tup: tup[1], reverse=True)
 
@@ -67,7 +67,7 @@ class Economy(commands.Cog):
     @commands.command(brief="Show the available options to spend gaybucks on.",
                       description="View and purchase options with your available gaybuck funds.")
     @commands.cooldown(1, 60, commands.BucketType.guild)
-    async def shop(self, ctx):
+    async def shop(self, ctx: commands.Context):
         message = "__You can purchase any of the following commands:__"
         for item, cost, description in self.shop_items:
             message += f"\n\n-**{item}** - *{cost} gb*: {description}"
@@ -79,14 +79,7 @@ class Economy(commands.Cog):
                       description="Donate gaybucks to another member of the server.")
     @checks.is_gambling_category()
     @commands.cooldown(1, 60, commands.BucketType.guild)
-    async def donate(self, ctx, member: discord.Member, amt: int = None):
-        # if not member or not amt:
-        #     return  ctx.send(f"{ctx.author.mention} Try `.help` + `[the function name]` "
-        #                                 f"to get more info on how to use this command.")
-        # try:
-        #     amt = int(amt)
-        # except ValueError:
-        #     return ctx.send(f"{ctx.author.mention} Your donation must be an integer (whole) number.")
+    async def donate(self, ctx: commands.Context, member: discord.Member, amt: int):
 
         checks.is_valid_bet(ctx.author, amt)
 

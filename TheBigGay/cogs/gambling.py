@@ -11,7 +11,7 @@ class Gambling(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def cog_command_error(self, ctx, error):
+    async def cog_command_error(self, ctx, error: commands.CommandError):
         if isinstance(error, commands.CheckFailure):
             await ctx.message.delete()
             return await ctx.send(f"{ctx.author.mention} Gambling is only allowed in the gambling hall channels.", delete_after=10)
@@ -29,7 +29,7 @@ class Gambling(commands.Cog):
             if "Gambling" not in categories:
                 await self.create_gambling_category(guild)
 
-    async def create_gambling_category(self, guild):
+    async def create_gambling_category(self, guild: discord.Guild):
         gambling_category = await guild.create_category(
             "Gambling", 
             # TODO Overwrites for not being allowed to touch threads
@@ -56,15 +56,15 @@ class Gambling(commands.Cog):
 
     # TODO Delete messages that are not commands
     @commands.Cog.listener()
-    async def on_message(self, msg: discord.Message):
-        if msg.author.bot:
+    async def on_message(self, message: discord.Message):
+        if message.author.bot:
             return
 
     @commands.command(brief="Show the leaderboard for gambling games",
                       description="Check who has won the most money in each of the gambling games.")
     @checks.is_gambling_category()
     @commands.cooldown(1, 60, commands.BucketType.guild)
-    async def leaderboard(self, ctx):
+    async def leaderboard(self, ctx: commands.Context):
         leaderboard = mysql.get_leaderboard(ctx.guild)
 
         embed = discord.Embed(title="Leaderboard", color=discord.Color.purple())
@@ -80,7 +80,7 @@ class Gambling(commands.Cog):
                       description="What are the odds I give you money? (1 in...?)")
     @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def odds(self, ctx, bet: int):
+    async def odds(self, ctx: commands.Context, bet: int):
         checks.is_valid_bet(ctx.author, bet)
 
         # Initial prompt to get the 1:? odds
@@ -160,7 +160,7 @@ class Gambling(commands.Cog):
                       discription="Bet with a friend to see who wins with a higher card.")
     @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def cardcut(self, ctx, member: discord.Member, bet: int):
+    async def cardcut(self, ctx: commands.Context, member: discord.Member, bet: int):
         checks.is_valid_bet(ctx.author, bet)
 
         player1 = ctx.author
@@ -274,7 +274,7 @@ class Gambling(commands.Cog):
                       discription="Bet with 5x odds on which of the five horses will reach the finish line first.")
     @checks.is_gambling_category()
     @commands.cooldown(1, 25, commands.BucketType.user)
-    async def horse(self, ctx, guess: int, bet: int):
+    async def horse(self, ctx: commands.Context, guess: int, bet: int):
         if 1 > guess > 5:
             return await ctx.send(f"{ctx.author.mention} Your guess must be a number from 1-5.")
         
@@ -354,7 +354,7 @@ class Gambling(commands.Cog):
                                   "If it crashes before you stop it, you lose your bet.")
     @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def crash(self, ctx, bet: int):
+    async def crash(self, ctx: commands.Context, bet: int):
         checks.is_valid_bet(ctx.author, bet)
 
         multiplier = 1.0
@@ -419,7 +419,7 @@ class Gambling(commands.Cog):
                                   "Clear as many squares as you can before you blow up.")
     @checks.is_gambling_category()
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def minesweeper(self, ctx, bet: int):
+    async def minesweeper(self, ctx: commands.Context, bet: int):
         checks.is_valid_bet(ctx.author, bet)
 
         field = "``` -------------------" \
