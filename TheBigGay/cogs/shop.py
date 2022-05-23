@@ -33,31 +33,31 @@ class Shop(commands.Cog):
                     return await message.channel.send("Good boy. You can reconnect to voice channels now!")
 
     @commands.command(brief="Deafens a user.", description="Deafens a user for 60 seconds.", hidden=True)
-    async def mute(self, ctx: commands.Context, user: discord.Member = None):
+    async def mute(self, ctx: commands.Context, member: discord.Member):
         checks.is_valid_bet(ctx.author, 50)
         
         await mysql.update_balance(ctx, ctx.author, -50)
 
         role = discord.utils.get(ctx.guild.roles, name="Bitch")
-        await user.add_roles(role)
+        await member.add_roles(role)
         try:
-            await user.edit(mute=True)
+            await member.edit(mute=True)
         except Exception as e:
             print(e)
 
-        await ctx.send(f"{user.mention} Shush.")
+        await ctx.send(f"{member.mention} Shush.")
 
         await asyncio.sleep(60)
 
-        await user.remove_roles(role)
+        await member.remove_roles(role)
         try:
-            await user.edit(mute=False)
+            await member.edit(mute=False)
         except Exception as e:
             print(e)
 
     # TODO Add description?
     @commands.command(hidden=True)
-    async def boot(self, ctx: commands.Context, member: discord.Member = None):    
+    async def boot(self, ctx: commands.Context, member: discord.Member):    
         checks.is_valid_bet(ctx.author, 100)
 
         await mysql.update_balance(ctx, ctx.author, -100)
