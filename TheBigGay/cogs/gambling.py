@@ -84,7 +84,7 @@ class Gambling(commands.Cog):
     async def odds(self, ctx: commands.Context, bet: int):
         checks.is_valid_bet(ctx.author, bet)
 
-        reactions = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+        options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
 
         # Initial prompt to get the 1:? odds
         embed = discord.Embed(
@@ -98,17 +98,17 @@ class Gambling(commands.Cog):
         )
         message1 = await ctx.send(embed=embed)
 
-        for reaction in reactions:
-            if reaction == "1️⃣":
+        for option in options:
+            if option == "1️⃣":
                 continue
-            await message1.add_reaction(reaction)
+            await message1.add_reaction(option)
 
-        def react_check(reaction, user: discord.User):
-            return user.id == ctx.author.id and reaction.message.id == message1.id and str(reaction) in reactions
+        def react_check(reaction: discord.Reaction, user: discord.User):
+            return user.id == ctx.author.id and reaction.message.id == message1.id and str(reaction) in options
 
         try:
-            emoji, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
-            choice = reactions.index(str(emoji)) + 1
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
+            choice = options.index(str(reaction)) + 1
         except asyncio.TimeoutError:
             return await message1.delete()
 
@@ -123,20 +123,20 @@ class Gambling(commands.Cog):
         )                 
         message2 = await ctx.send(embed=embed)
 
-        for reaction in range(choice):
-            await message2.add_reaction(reactions[reaction])
+        for i in range(choice):
+            await message2.add_reaction(options[i])
 
-        def react_check(reaction, user: discord.User):
-            return user.id == ctx.author.id and reaction.message.id == message2.id and str(reaction) in reactions
+        def react_check(reaction: discord.Reaction, user: discord.User):
+            return user.id == ctx.author.id and reaction.message.id == message2.id and str(reaction) in options
 
         try:
-            emoji, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
         except asyncio.TimeoutError:
             await message1.delete()
             await message2.delete()
             return
 
-        result = reactions.index(str(emoji)) + 1
+        result = options.index(str(reaction)) + 1
         pick = random.randint(1, choice)
 
         if result == pick:
@@ -179,7 +179,7 @@ class Gambling(commands.Cog):
     async def cardcut(self, ctx: commands.Context, member: discord.Member, bet: int):
         checks.is_valid_bet(ctx.author, bet)
 
-        reactions = ["❌", "✅"]
+        options = ["❌", "✅"]
         suits = ["♠️", "♥️", "♣️", "♦️"]
         values = ["🇦", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "🇯", "🇶", "🇰"]
 
@@ -202,19 +202,19 @@ class Gambling(commands.Cog):
         )
         message = await ctx.send(embed=embed)
 
-        for reaction in reactions:
-            await message.add_reaction(reaction)
+        for option in options:
+            await message.add_reaction(option)
 
-        def react_check(reaction, user: discord.User):
-            if user.id == player2.id and reaction.message.id == message.id and str(reaction) in reactions:
+        def react_check(reaction: discord.Reaction, user: discord.User):
+            if user.id == player2.id and reaction.message.id == message.id and str(reaction) in options:
                 return checks.is_valid_bet(user, bet)
 
         try:
-            emoji, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
         except asyncio.TimeoutError:
             return await message.delete()
 
-        if str(emoji) == "❌":
+        if str(reaction) == "❌":
             embed = discord.Embed(
                 title="Card Cutting",
                 description=(
@@ -247,13 +247,13 @@ class Gambling(commands.Cog):
             number = values[number_num]
             return number + suit, (number_num * 10) + suit_num
 
-        def check(reaction, user: discord.User):
+        def check(reaction: discord.Reaction, user: discord.User):
             return user in players and reaction.message.id == card_cut.id and str(reaction) == "❌"
 
         cards = {}
         for _ in range(2):
             try:
-                emoji, user = await self.bot.wait_for('reaction_add', timeout=60, check=check)
+                reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=check)
                 players.remove(user)
                 cards[user] = card()
 
@@ -309,7 +309,7 @@ class Gambling(commands.Cog):
             "🏁- - - - - 🏇**5.**"
         ]
 
-        reactions = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
+        options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
 
         description = (
             "Choose your horse!\n \n"
@@ -319,15 +319,15 @@ class Gambling(commands.Cog):
         embed = discord.Embed(title=f"Horse Racing", description=description, color=discord.Color.green())
         message = await ctx.send(embed=embed)
 
-        for reaction in reactions:
-            await message.add_reaction(reaction)
+        for option in options:
+            await message.add_reaction(option)
 
-        def react_check(reaction, user: discord.User):
-            return user.id == ctx.author.id and reaction.message.id == message.id and str(reaction) in reactions
+        def react_check(reaction: discord.Reaction, user: discord.User):
+            return user.id == ctx.author.id and reaction.message.id == message.id and str(reaction) in options
 
         try:
-            emoji, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
-            guess = reactions.index(str(emoji)) + 1
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
+            guess = options.index(str(reaction)) + 1
         except asyncio.TimeoutError:
             return await message.delete()
 
@@ -481,8 +481,8 @@ class Gambling(commands.Cog):
             "\n -------------------```"
         )
 
-        indices = ["ABCD1234"]
-        reactions = ["🇦", "🇧", "🇨", "🇩", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "❌"]
+        indices = ["A", "B", "C", "D", "1", "2", "3", "4"]
+        options = ["🇦", "🇧", "🇨", "🇩", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "❌"]
 
         bombs = []
         while len(bombs) < 2:
@@ -502,50 +502,62 @@ class Gambling(commands.Cog):
         embed.add_field(name="Next Score", value=f"{next_score} gaybucks", inline=False)
         embed.add_field(name="Total Profit", value=f"{total} gaybucks", inline=False)
         embed.add_field(name="Odds of Scoring", value="{:.2f}%".format(odds * 100), inline=False)
-        embed.add_field(name="\u200b", value=f"Select the row and column, or ❌ to stop.\nUser: {ctx.author.mention}", inline=False)
+        embed.add_field(name="\u200b", value=f"Select the row and column of the square you wish to reveal, or select ❌ to stop. Please wait until the reactions reset before inputting your next square.\nUser: {ctx.author.mention}", inline=False)
         message = await ctx.send(embed=embed)
         field_msg = await ctx.send(field)
 
-        for reaction in reactions:
-            await message.add_reaction(reaction)
+        for option in options:
+            await field_msg.add_reaction(option)
 
-        column = None
-        row = None
-        stop = False
+        # Just row and column names
+        available = options[:-1]
 
-        def check(reaction, user: discord.User):
-            global column, row, stop
-            if user.id == ctx.author.id and reaction.message.id == message.id and str(reaction) in reactions:
+        def check(reaction: discord.Reaction, user: discord.User):
+            if user.id == ctx.author.id and reaction.message.id == field_msg.id and str(reaction) in options:
                 if str(reaction) == "❌":
-                    stop = True
                     return True
 
-                index = reactions.index(str(reaction))
+                nonlocal available
+                if str(reaction) in available:
+                    index = options.index(str(reaction))
 
-                if index < 4 and not column:
-                    column = indices[index]
-                    return True
-                elif index >= 4 and not row:
-                    row = indices[index]
-                    return True
+                    if index < 4:
+                        available = available[-4:]
+                        return True
+                    elif index >= 4:
+                        available = available[:4]
+                        return True
             
             return False
 
         i = 1
         while True:
             try:
-                emoji, user = await self.bot.wait_for('reaction_add', timeout=60, check=check)
-                if str(emoji) == "❌":
+                first_reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=check)
+                if str(first_reaction) == "❌":
                     break
+                first_index = options.index(str(first_reaction))
 
-                emoji, user = await self.bot.wait_for('reaction_add', timeout=60, check=check)
-                if str(emoji) == "❌":
+                second_reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=check)
+                if str(second_reaction) == "❌":
                     break
+                second_index = options.index(str(second_reaction))
 
             except asyncio.TimeoutError:
-                stop = True
+                break
 
-            choice = column + row
+            if first_index < second_index:
+                choice = indices[first_index] + indices[second_index]
+            else: 
+                choice = indices[second_index] + indices[first_index]
+
+            if choice not in field:
+                # Reset options
+                available = options[:-1]
+
+                await first_reaction.remove(ctx.author)
+                await second_reaction.remove(ctx.author)
+                continue
 
             if choice in bombs:
                 field = field.replace(choice, '❌')
@@ -572,55 +584,44 @@ class Gambling(commands.Cog):
 
             next_rate += i / 100  # exp. rate/score
             next_score = int(round(next_rate * bet, 5))
+            i *= 1.9
 
+            # Win!
             if remaining - 2 == 0:
-                for i in range(len(bombs)):
-                    field = field.replace(bombs[i], '💣')
-                await field_msg.edit(content=field)
-
-                await mysql.update_balance(ctx, ctx.author, total)
-
-                embed = discord.Embed(title="Minesweeper", color=discord.Color.green())
-                embed.add_field(name="You Beat the Game!", value=f"{ctx.author.mention} You have won {total} gaybucks",
-                                inline=False)
-                embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks",
-                                inline=False)
-                await ctx.send(embed=embed)
-
-                if mysql.check_leaderboard("Minesweeper", ctx.author, total):
-                    await ctx.send("New Minesweeper high score!")
-
-                return
+                break
 
             embed = discord.Embed(title="Minesweeper", description=f"There are 2 bombs out there...",
                                   color=discord.Color.green())
             embed.add_field(name="Next Score", value=f"{next_score} gaybucks", inline=False)
             embed.add_field(name="Total Profit", value=f"{total} gaybucks", inline=False)
             embed.add_field(name="Odds of Scoring", value="{:.2f}%".format(odds * 100), inline=False)
-            embed.add_field(name="\u200b", value=f"Type the name of a square or type `stop` to stop."
-                                                 f"\nUser: {ctx.author.mention}", inline=False)
+            embed.add_field(name="\u200b", value=f"Select the row and column, or ❌ to stop.\nUser: {ctx.author.mention}", inline=False)
             await message.edit(embed=embed)
 
-            i *= 1.9
+            # Reset options
+            available = options[:-1]
 
-        if stop:
-            for i in range(len(bombs)):
-                field = field.replace(bombs[i], '💣')
-            await field_msg.edit(content=field)
+            await first_reaction.remove(ctx.author)
+            await second_reaction.remove(ctx.author)
 
-            if total > 0:
-                await mysql.update_balance(ctx, ctx.author, total)
+        # Loop broken by either stopping or winning
+        for i in range(len(bombs)):
+            field = field.replace(bombs[i], '💣')
+        await field_msg.edit(content=field)
 
-            embed = discord.Embed(title="Minesweeper", color=discord.Color.green())
-            embed.add_field(name="You Stopped", value=f"{ctx.author.mention} You have won {total} gaybucks",
-                            inline=False)
-            embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks",
-                            inline=False)
-            await ctx.send(embed=embed)
+        if total > 0:
+            await mysql.update_balance(ctx, ctx.author, total)
 
-            if mysql.check_leaderboard("Minesweeper", ctx.author, total):
-                    await ctx.send("New Minesweeper high score!")
-            return
+        embed = discord.Embed(title="Minesweeper", color=discord.Color.green())
+        embed.add_field(name="Winner!", value=f"{ctx.author.mention} You have won {total} gaybucks",
+                        inline=False)
+        embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks",
+                        inline=False)
+        await ctx.send(embed=embed)
+
+        if mysql.check_leaderboard("Minesweeper", ctx.author, total):
+                await ctx.send("New Minesweeper high score!")
+        return
 
 
 async def setup(bot):
