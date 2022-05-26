@@ -166,6 +166,25 @@ class Roles(commands.Cog):
             await funny_message.add_reaction(key)
 
     @commands.Cog.listener()
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        if after.channel is None:
+            return
+
+        if "Banished" in [x.name for x in member.roles]:
+            if after.channel.name != "Hell":
+                try:
+                    return await member.move_to(None)
+                except Exception as e:
+                    print(e)
+
+        if "Bitch" not in [x.name for x in member.roles]:
+            if member.voice.mute:
+                await member.edit(mute=False)
+        # If the member has the bitch role but isn't muted yet
+        elif not member.voice.mute:
+            await member.edit(mute=True)
+
+    @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.member.bot:
             return
