@@ -77,7 +77,6 @@ class Polls(commands.Cog):
 
     @commands.command(brief="Vote on a list of entries.",
                       description="Give The Big Gay a list of entries separated by a comma, and then vote.")
-    @commands.cooldown(1, 10, commands.BucketType.guild)
     async def poll(self, ctx: commands.Context, *, inputs: str):
         description = str()
         choices = str(inputs).split(", ")
@@ -94,7 +93,6 @@ class Polls(commands.Cog):
 
     @commands.command(brief="Vote on if a user is bitching too much",
                       description="If found guilty, the user caught bitching will be muted for 60 seconds.")
-    @commands.cooldown(1, 60 * 5, commands.BucketType.guild)
     async def bitchalert(self, ctx: commands.Context, member: discord.Member = None):
         if member.bot:
             return await ctx.send(f"{ctx.author.mention} Nice try bitch.")
@@ -133,7 +131,6 @@ class Polls(commands.Cog):
     @commands.command(brief="Vote to send a user to The Shadow Realm",
                       description="If the vote passes, the user is banished and cannot come back to the main channels, "
                                   "and must remain in purgatory for 60 seconds.")
-    @commands.cooldown(1, 60 * 5, commands.BucketType.guild)
     async def banish(self, ctx: commands.Context, member: discord.Member = None):
         if not hasattr(member.voice, "channel"):
             return await ctx.send(f"{member.mention} is not in a voice channel!")
@@ -178,9 +175,9 @@ class Polls(commands.Cog):
         else:
             await ctx.send("Not enough votes. Lucky you!")
 
-    @commands.command(brief="Closes the most recent poll. (admin)",
-                      description="The latest poll to be created will be closed with this command.")
-    @commands.has_permissions(administrator=True)
+    @commands.command(brief="Closes the most recent poll.",
+                      description="The latest poll to be created will be closed with this command.", hidden=True)
+    @commands.has_permissions(manage_messages=True)
     async def closepoll(self, ctx: commands.Context):
         if Poll.current_poll:
             await Poll.current_poll[-1].close()
