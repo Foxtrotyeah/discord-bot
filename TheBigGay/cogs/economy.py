@@ -10,14 +10,6 @@ class Economy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        # Hidden commands from shop cog
-        self.shop_items = [
-            (".mute [user]", 50, "Mute a user for 60 seconds."),
-            (".boot [user]", 100, "Force a user to disconnect until they message The Big Gay."),
-            (".admin", 200, "Receive admin privileges for 30 minutes."),
-            (".daddy", 1000, "Receive the permanent title of 'Daddy'.")
-        ]
-
     async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError): 
         if isinstance(error, checks.WrongChannel):                
             await ctx.message.delete()
@@ -67,17 +59,6 @@ class Economy(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(brief="Show the available options to spend gaybucks on.",
-                      description="View and purchase options with your available gaybuck funds.")
-    @commands.cooldown(1, 60, commands.BucketType.guild)
-    async def shop(self, ctx: commands.Context):
-        message = "__You can purchase any of the following commands:__"
-        for item, cost, description in self.shop_items:
-            message += f"\n\n-**{item}** - *{cost} gb*: {description}"
-
-        embed = discord.Embed(title="Shop", description=message, color=discord.Color.dark_gold())
-        await ctx.send(embed=embed)
-
     @commands.command(brief="Donate gaybucks to another member of the server.",
                       description="Donate gaybucks to another member of the server.")
     @checks.is_gambling_category()
@@ -88,7 +69,7 @@ class Economy(commands.Cog):
 
         await mysql.update_balance(ctx, ctx.author, -amt)
         await mysql.update_balance(ctx, member, amt)
-        await ctx.send(f"{ctx.author.mention} has donated {amt} GB to {member.mention}!")
+        await ctx.send(f"{ctx.author.mention} has just donated {amt} GB to {member.mention}! They now have {mysql.get_balance(member)} GB.")
 
 
 async def setup(bot):
