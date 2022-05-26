@@ -11,17 +11,6 @@ class Gambling(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):   
-        if isinstance(error, commands.MissingRequiredArgument):  
-            return
-
-        if isinstance(error, checks.WrongChannel):                
-            await ctx.message.delete()
-            return await ctx.send(f"{ctx.author.mention} {error}", delete_after=10)
-
-        else:
-            return await ctx.send(f"{ctx.author.mention} {error}")
-
     @commands.Cog.listener()
     async def on_ready(self):
         guilds = self.bot.guilds
@@ -63,8 +52,8 @@ class Gambling(commands.Cog):
 
         if message.channel.category.name == 'Gambling':
             # Check if message is actually a gambling/economy command being called
-            if ctx.command and ctx.author.guild_permissions.manage_messages:
-                if ctx.command.cog_name in ('Gambling', 'Economy'):
+            if ctx.command:
+                if ctx.command.cog_name in ('Gambling', 'Economy') or ctx.command.name == 'help':
                     return
 
             await message.delete()
@@ -74,7 +63,6 @@ class Gambling(commands.Cog):
 
     @commands.command(brief="Show the leaderboard for gambling games",
                       description="Check who has won the most money in each of the gambling games.")
-    @commands.cooldown(1, 60, commands.BucketType.guild)
     async def leaderboard(self, ctx: commands.Context):
         leaderboard = mysql.get_leaderboard(ctx.guild)
 
@@ -89,7 +77,6 @@ class Gambling(commands.Cog):
 
     @commands.command(brief="(1 Player) What are the odds?",
                       description="What are the odds I give you money? (1 in...?)")
-    @commands.cooldown(1, 5, commands.BucketType.user)
     async def odds(self, ctx: commands.Context, bet: int):
         checks.is_valid_bet(ctx.author, bet)
 
@@ -181,10 +168,8 @@ class Gambling(commands.Cog):
 
         await message2.edit(embed=embed)
 
-    # TODO Change response wait to reactions rather than yes/no
-    @commands.command(brief="(2 Players) Bet to see who wins with a higher card",
+    @commands.command(brief="(2 Players) Higher card wins.",
                       discription="Bet with a friend to see who wins with a higher card.")
-    @commands.cooldown(1, 5, commands.BucketType.user)
     async def cardcut(self, ctx: commands.Context, member: discord.Member, bet: int):
         checks.is_valid_bet(ctx.author, bet)
 
@@ -304,9 +289,8 @@ class Gambling(commands.Cog):
         if mysql.check_leaderboard("Cardcut", winner, pot):
             await ctx.send("New Cardcut high score!")
 
-    @commands.command(brief="(1 Player) Bet on which horse will win the race.",
+    @commands.command(brief="(1 Player) Horse race.",
                       discription="Bet with 5x odds on which of the five horses will reach the finish line first.")
-    @commands.cooldown(1, 25, commands.BucketType.user)
     async def horse(self, ctx: commands.Context, bet: int):        
         checks.is_valid_bet(ctx.author, bet)
 
@@ -406,10 +390,9 @@ class Gambling(commands.Cog):
             embed2 = discord.Embed(title=f"Horse Racing", description=description, color=discord.Color.red())
             await ctx.send(embed=embed2)
 
-    @commands.command(brief="(1 Player) Multiplier will go higher, but you have to stop before it crashes.",
-                      discription="The multiplier and your payout will keep going higher. "
+    @commands.command(brief="(1 Player) Cash out before the crash.",
+                      description="The multiplier and your payout will keep going higher. "
                                   "If it crashes before you stop it, you lose your bet.")
-    @commands.cooldown(1, 5, commands.BucketType.user)
     async def crash(self, ctx: commands.Context, bet: int):
         checks.is_valid_bet(ctx.author, bet)
 
@@ -471,10 +454,9 @@ class Gambling(commands.Cog):
                 await message.edit(embed=embed)
                 break
 
-    @commands.command(brief="(1 Player) See how many squares you can clear.",
-                      description="There are three mines in a field. "
+    @commands.command(brief="(1 Player) How many squares can you clear?",
+                      description="There are two mines in a field. "
                                   "Clear as many squares as you can before you blow up.")
-    @commands.cooldown(1, 5, commands.BucketType.user)
     async def minesweeper(self, ctx: commands.Context, bet: int):
         checks.is_valid_bet(ctx.author, bet)
 
