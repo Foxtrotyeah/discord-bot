@@ -75,25 +75,6 @@ class Polls(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.Cog.listener()
-    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-        if after.channel is None:
-            return
-
-        if "Banished" in [x.name for x in member.roles]:
-            if after.channel.name != "Hell":
-                try:
-                    return await member.move_to(None)
-                except Exception as e:
-                    print(e)
-
-        if "Bitch" not in [x.name for x in member.roles]:
-            if member.voice.mute:
-                await member.edit(mute=False)
-        # If the member has the bitch role but isn't muted yet
-        elif not member.voice.mute:
-            await member.edit(mute=True)
-
     @commands.command(brief="Vote on a list of entries.",
                       description="Give The Big Gay a list of entries separated by a comma, and then vote.")
     @commands.cooldown(1, 10, commands.BucketType.guild)
