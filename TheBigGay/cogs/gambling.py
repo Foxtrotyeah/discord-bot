@@ -11,7 +11,10 @@ class Gambling(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):        
+    async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):   
+        if isinstance(error, commands.MissingRequiredArgument):  
+            return
+
         if isinstance(error, checks.WrongChannel):                
             await ctx.message.delete()
             return await ctx.send(f"{ctx.author.mention} {error}", delete_after=10)
@@ -32,18 +35,14 @@ class Gambling(commands.Cog):
     async def create_gambling_category(self, guild: discord.Guild):
         gambling_category = await guild.create_category(
             "Gambling", 
-            # TODO Overwrites for not being allowed to touch threads
-            # overwrites={
-            #     guild.default_role: discord.PermissionOverwrite(
-            #         send_messages=False,
-            #         add_reactions=False
-            #     ),
-            #     guild.me: discord.PermissionOverwrite(
-            #         read_messages=True,
-            #         send_messages=True,
-            #         add_reactions=True
-            #     )
-            # },
+            overwrites={
+                guild.default_role: discord.PermissionOverwrite(
+                    add_reactions=False
+                ),
+                guild.me: discord.PermissionOverwrite(
+                    add_reactions=True
+                )
+            },
             position=32
         )
 
@@ -54,11 +53,21 @@ class Gambling(commands.Cog):
             position=0
         )
 
-    # TODO Delete messages that are not commands
+    # No messages except for commands in the Gambling category.
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        ctx = await self.bot.get_context(message)
+
         if message.author.bot:
-            return
+            return            
+
+        if message.channel.category.name == 'Gambling':
+            # Check if message is actually a gambling/economy command being called
+            if ctx.command and ctx.author.guild_permissions.manage_messages:
+                if ctx.command.cog_name in ('Gambling', 'Economy'):
+                    return
+
+            await message.delete()
 
     async def cog_check(self, ctx: commands.Context) -> bool:
         return checks.is_gambling_category_pred(ctx)
