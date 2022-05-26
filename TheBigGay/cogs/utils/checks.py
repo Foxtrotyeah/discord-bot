@@ -7,7 +7,7 @@ from . import mysql
 
 class WrongChannel(commands.CheckFailure):
     def __str__(self):
-        return "Gambling is only allowed in the gambling hall channels."
+        return "This command is only allowed in the gambling hall channels."
 
 
 class IneligibleForSubsidy(commands.CheckFailure):
