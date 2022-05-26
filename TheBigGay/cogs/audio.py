@@ -5,9 +5,28 @@ import youtube_dl
 import asyncio
 
 
-class Audio(commands.Cog):
+class Audio(commands.Cog, command_attrs=dict(hidden=True)):
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.command(brief="Show soudbyte commands", description="Show available soudbyte commands", hidden=False)
+    async def audio(self, ctx: commands.Context):
+        embed = discord.Embed(
+            title="Audio Commands", 
+            color=discord.Color.blue()
+        )
+
+        description = str()
+
+        for command in self.get_commands():
+            if command.name == "audio":
+                continue
+
+            description += f"**{command.name}** - {command.description}\n"
+
+        embed.add_field(name="\u200b", value=description, inline=False)
+
+        await ctx.send(embed=embed)
 
     # @commands.command()
     # async def youtube(ctx, *, search):
@@ -20,7 +39,7 @@ class Audio(commands.Cog):
     #     await ctx.send('https://www.youtube.com/watch?v=' + search_results[0])
 
     # todo Make this functional as a bot command. How to disconnect?? Don't know how to realize when audio is finished
-    # todo Add a check to see if bot is already connected to a voice channel
+    # TODO Add a check to see if bot is already connected to a voice channel
     async def play(self, ctx: commands.Context, url: str, name: str, channel: discord.VoiceChannel, wait: int = 60 * 5):
         is_there = os.path.isfile(f"./tracks/{name}")
         if not is_there:
@@ -97,7 +116,7 @@ class Audio(commands.Cog):
         channel = ctx.guild.voice_channels[0]
         await self.play(ctx, url="https://youtu.be/-FrpuPLYnvY", name="sogood.mp3", channel=channel, wait=17)
 
-    @commands.command(brief="Soudbyte", description="Plays audio from the 'Damn, this n**** spitting' meme")
+    @commands.command(brief="Soudbyte", description="Plays audio from the 'Damn, this n\*\*\*\* spitting' meme")
     @commands.cooldown(1, 30, commands.BucketType.category)
     async def spitting(self, ctx: commands.Context):
         channel = ctx.guild.voice_channels[0]
