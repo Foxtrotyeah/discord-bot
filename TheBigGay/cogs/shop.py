@@ -6,7 +6,7 @@ from .utils import mysql
 from .utils import checks
 
 
-class Shop(commands.Cog):
+class Shop(commands.Cog, command_attrs=dict(hidden=True)):
     def __init__(self, bot):
         self.bot = bot
 
@@ -32,7 +32,32 @@ class Shop(commands.Cog):
                     await member.remove_roles(role)
                     return await message.channel.send("Good boy. You can reconnect to voice channels now!")
 
-    @commands.command(brief="Deafens a user.", description="Deafens a user for 60 seconds.", hidden=True)
+    @commands.command(brief="Show the available options to spend gaybucks on.",
+                      description="View and purchase options with your available gaybuck funds.", hidden=False)
+    @commands.cooldown(1, 60, commands.BucketType.guild)
+    async def shop(self, ctx: commands.Context):
+        message = "__You can purchase any of the following commands:__"
+
+        embed = discord.Embed(title="Shop", description=message, color=discord.Color.dark_gold())
+
+        description = str()
+
+        for command in self.get_commands():
+            if command.name == "shop":
+                continue
+
+            if command.name in ('admin', 'daddy'):
+                description += f"**{command.name}** - {command.description}\n\n"
+            
+            else:
+                description += f"**{command.name} <user>** - {command.description}\n\n"
+
+
+        embed.add_field(name="\u200b", value=description, inline=False)
+
+        await ctx.send(embed=embed)
+
+    @commands.command(description="*75 gb*: Mutes a user for 60 seconds.")
     async def mute(self, ctx: commands.Context, member: discord.Member):
         checks.is_valid_bet(ctx.author, 50)
         
@@ -56,7 +81,7 @@ class Shop(commands.Cog):
             print(e)
 
     # TODO Add description?
-    @commands.command(hidden=True)
+    @commands.command(description="*100 gb*: Force a user to disconnect until they message The Big Gay.")
     async def boot(self, ctx: commands.Context, member: discord.Member):    
         checks.is_valid_bet(ctx.author, 100)
 
@@ -73,10 +98,7 @@ class Shop(commands.Cog):
 
         await member.send("Looks like you got put in time out. If you want back in, you'd better beg for daddy.")
 
-    @commands.command(brief="Gives admin-like control to a user.",
-                      description="The user receives basically every permission that an admin has. "
-                                  "Lasts for 5 minutes.",
-                      hidden=True)
+    @commands.command(description="*300 gb*: Receive admin privileges for 30 minutes.")
     async def admin(self, ctx: commands.Context):
         if "Admin Lite" in [x.name for x in ctx.author.roles]:
             return await ctx.send(
@@ -94,8 +116,7 @@ class Shop(commands.Cog):
         await asyncio.sleep(60*30)
         await ctx.author.remove_roles(role)
 
-    @commands.command(brief="The Big Gay will now recognize you as a higher being.",
-                      description="This privilege is permanent.", hidden=True)
+    @commands.command(description="*2000 gb*: Receive the permanent title of 'Daddy'.")
     async def daddy(self, ctx: commands.Context):
         if "Daddy" in [x.name for x in ctx.author.roles]:
             return await ctx.send(f"{ctx.author.mention} You're already a daddy! What more do you want?")
