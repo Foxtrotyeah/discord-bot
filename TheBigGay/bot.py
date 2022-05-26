@@ -41,6 +41,16 @@ extensions = (
 )
 
 
+# class HelpCommand(commands.HelpCommand):
+#     def __init__(self, **options) -> None:
+#         super().__init__(**options)
+
+#     def cog():
+#         return {
+#             'Audio': None
+#         }
+
+
 class GayBot(commands.AutoShardedBot):
     user: discord.ClientUser
     app_info: discord.AppInfo
@@ -70,10 +80,14 @@ class GayBot(commands.AutoShardedBot):
                 print(e)
     
     async def process_commands(self, message: discord.Message):
-        if message.author.bot or not message.content.startswith(command_prefix):
+        ctx = await self.get_context(message)
+
+        if message.author.bot or not ctx.command:
             return
 
-        ctx = await self.get_context(message)
+        # Only invoke gambling and economy commands in the Gambling category
+        if message.channel.category.name == 'Gambling' and ctx.command.cog_name not in ('Gambling', 'Economy'):
+            return 
         
         # 'Daddy' role functionality
         # roles = [x.name for x in message.author.roles]
