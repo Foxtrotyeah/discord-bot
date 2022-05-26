@@ -32,9 +32,8 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
                     await member.remove_roles(role)
                     return await message.channel.send("Good boy. You can reconnect to voice channels now!")
 
-    @commands.command(brief="Show the available options to spend gaybucks on.",
+    @commands.command(brief="The gaybuck shop.",
                       description="View and purchase options with your available gaybuck funds.", hidden=False)
-    @commands.cooldown(1, 60, commands.BucketType.guild)
     async def shop(self, ctx: commands.Context):
         message = "__You can purchase any of the following commands:__"
 
@@ -80,7 +79,6 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
         except Exception as e:
             print(e)
 
-    # TODO Add description?
     @commands.command(description="*100 gb*: Force a user to disconnect until they message The Big Gay.")
     async def boot(self, ctx: commands.Context, member: discord.Member):    
         checks.is_valid_bet(ctx.author, 100)
