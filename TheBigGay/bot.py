@@ -1,8 +1,11 @@
 import discord
 from discord.ext import commands
 import requests
+import asyncio
 import os
 from collections import Counter
+
+from cogs.utils import checks
 
 
 # Bot link
@@ -16,7 +19,7 @@ command_prefix = '.'
 
 description = "Hey there~ I'm a bot written by my daddy, Foxtrot."
 
-help_command = commands.DefaultHelpCommand(no_category="Default Commands")
+help_command = commands.DefaultHelpCommand(no_category="Default Commands", verify_checks=False)
 
 # Right now the bot is set to admin permissions (permissions=8).
 intents = discord.Intents(
@@ -41,16 +44,6 @@ extensions = (
 )
 
 
-# class HelpCommand(commands.HelpCommand):
-#     def __init__(self, **options) -> None:
-#         super().__init__(**options)
-
-#     def cog():
-#         return {
-#             'Audio': None
-#         }
-
-
 class GayBot(commands.AutoShardedBot):
     user: discord.ClientUser
     app_info: discord.AppInfo
@@ -63,7 +56,7 @@ class GayBot(commands.AutoShardedBot):
             help_command=help_command
         )
 
-        self.spam_control = commands.CooldownMapping.from_cooldown(2, 3.0, commands.BucketType.user)
+        self.spam_control = commands.CooldownMapping.from_cooldown(1, 3.0, commands.BucketType.user)
 
         self._spam_counter = Counter()
 
@@ -86,8 +79,9 @@ class GayBot(commands.AutoShardedBot):
             return
 
         # Only invoke gambling and economy commands in the Gambling category
-        if message.channel.category.name == 'Gambling' and ctx.command.cog_name not in ('Gambling', 'Economy'):
-            return 
+        if message.channel.category.name == 'Gambling' and ctx.command.name != 'help':
+            if ctx.command.cog_name not in ('Gambling', 'Economy'):
+                return 
         
         # 'Daddy' role functionality
         # roles = [x.name for x in message.author.roles]
@@ -106,6 +100,8 @@ class GayBot(commands.AutoShardedBot):
             self._spam_counter[author_id] += 1
             if self._spam_counter[author_id] == 1:
                 await ctx.send(f"Spam. Try again in {round(retry_after)} seconds.")
+
+            return
         else:
             self._spam_counter.pop(author_id, None)
 
@@ -114,7 +110,21 @@ class GayBot(commands.AutoShardedBot):
 
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
         if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send_help(ctx.command)
+            return await ctx.send_help(ctx.command)
+
+        elif isinstance(error, commands.CommandOnCooldown):
+            return await ctx.send(error, delete_after=5)
+
+        elif isinstance(error, checks.WrongChannel):                
+            await ctx.send(f"{ctx.author.mention} {error}", delete_after=10)
+
+            await asyncio.sleep(10)
+            await ctx.message.delete()
+            return
+
+        else:
+            return await ctx.send(f"{ctx.author.mention} {error}")
+
 
     async def on_ready(self):
         game = discord.Game("with a DILF | .help")
