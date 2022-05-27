@@ -8,7 +8,7 @@ class Poll:
     voting = ["👍", "👎"]
     current_poll = []
 
-    def __init__(self, ctx, title, description, inputs=None, yes_no=False, bot=None):
+    def __init__(self, ctx: commands.Context, title: str, description: str, inputs: list[str] = None, yes_no: bool = False, bot=None):
         self.bot = bot
         self.ctx = ctx
         self.title = title
@@ -70,19 +70,14 @@ class Poll:
 
 
 class Polls(commands.Cog):
+    current_poll = []
+
     def __init__(self, bot):
         self.bot = bot
 
-    current_poll = []
-
     @commands.command(brief="Vote on a list of entries.",
                       description="Give The Big Gay a list of entries separated by a comma, and then vote.")
-    @commands.cooldown(1, 10, commands.BucketType.guild)
-    async def poll(self, ctx, *, inputs=None):
-        if not inputs:
-            raise commands.CommandError(f"{ctx.author.mention} Try `.help` + `[the function name]` "
-                                        f"to get more info on how to use this command.")
-
+    async def poll(self, ctx: commands.Context, *, inputs: str):
         description = str()
         choices = str(inputs).split(", ")
 
@@ -98,35 +93,31 @@ class Polls(commands.Cog):
 
     @commands.command(brief="Vote on if a user is bitching too much",
                       description="If found guilty, the user caught bitching will be muted for 60 seconds.")
-    @commands.cooldown(1, 60 * 5, commands.BucketType.guild)
-    async def bitchalert(self, ctx, user: discord.Member = None):
-        if not user:
-            raise commands.CommandError(f"{ctx.author.mention} Try `.help` + `[the function name]` "
-                                        f"to get more info on how to use this command.")
-        if user.bot:
-            raise commands.CommandError(f"{ctx.author.mention} Bitch, I'm flawless.")
-        if user.status == discord.Status.offline:
-            raise commands.CommandError(f"Chill out! {user.mention} isn't even online.")
+    async def bitchalert(self, ctx: commands.Context, member: discord.Member = None):
+        if member.bot:
+            return await ctx.send(f"{ctx.author.mention} Nice try bitch.")
+        if member.status == discord.Status.offline:
+            return await ctx.send(f"Chill out! {member.mention} isn't even online.")
 
-        description = f"Is {user.mention} being a little bitch?"
-        bitch_poll = Poll(ctx, "Bitch Alert", description=description, yes_no=True, bot=self.bot)
+        description = f"Is {member.mention} being a little bitch?"
+        bitch_poll = Poll(ctx, "Bitch Alert", description, yes_no=True, bot=self.bot)
         await bitch_poll.send()
 
         if bitch_poll.result == "👍":
             role = discord.utils.get(ctx.guild.roles, name="Bitch")
-            await user.add_roles(role)
+            await member.add_roles(role)
             try:
-                await user.edit(mute=True)
+                await member.edit(mute=True)
             except Exception as e:
                 print(e)
 
-            await ctx.send(f"{user.mention} Begone, THOT!")
+            await ctx.send(f"{member.mention} Begone, THOT!")
 
             await asyncio.sleep(60)
 
-            await user.remove_roles(role)
+            await member.remove_roles(role)
             try:
-                await user.edit(mute=False)
+                await member.edit(mute=False)
             except Exception as e:
                 print(e)
 
@@ -134,31 +125,27 @@ class Polls(commands.Cog):
             return
 
         else:
-            await ctx.send(f"{user.mention}, you just keep on bitching. All good here.")
+            await ctx.send(f"{member.mention}, you just keep on bitching. All good here.")
 
     # creates a poll for sending a user to a secondary channel, adding the 'banished' role
     @commands.command(brief="Vote to send a user to The Shadow Realm",
                       description="If the vote passes, the user is banished and cannot come back to the main channels, "
                                   "and must remain in purgatory for 60 seconds.")
-    @commands.cooldown(1, 60 * 5, commands.BucketType.guild)
-    async def banish(self, ctx, user: discord.Member = None):
-        if not user:
-            raise commands.CommandError(f"{ctx.author.mention} Try `.help` + `[the function name]` "
-                                        f"to get more info on how to use this command.")
-        if not hasattr(user.voice, "channel"):
-            raise commands.CommandError(f"{user.mention} is not in a voice channel!")
-        if user.bot:
-            raise commands.CommandError(f"{ctx.author.mention} ...I'll remember that.")
-        if user.status == discord.Status.offline:
-            raise commands.CommandError(f"Chill out! {user.mention} isn't even online.")
+    async def banish(self, ctx: commands.Context, member: discord.Member = None):
+        if not hasattr(member.voice, "channel"):
+            return await ctx.send(f"{member.mention} is not in a voice channel!")
+        if member.bot:
+            return await ctx.send(f"{ctx.author.mention} Nice try, bitch.")
+        if member.status == discord.Status.offline:
+            return await ctx.send(f"Chill out! {member.mention} isn't even online.")
 
-        description = f"Send {user.mention} to the shadow realm?"
-        banish_poll = Poll(ctx, "Banishment", description=description, yes_no=True, bot=self.bot)
+        description = f"Send {member.mention} to the shadow realm?"
+        banish_poll = Poll(ctx, "Banishment", description, yes_no=True, bot=self.bot)
         await banish_poll.send()
 
         if banish_poll.result == "👍":
             role = discord.utils.get(ctx.guild.roles, name="Banished")
-            await user.add_roles(role)
+            await member.add_roles(role)
 
             category = await ctx.guild.create_category("The Shadow Realm")
             s_channel = await ctx.guild.create_voice_channel("Hell", category=category)
@@ -167,10 +154,10 @@ class Polls(commands.Cog):
             audio = self.bot.get_cog("Audio")
 
             await audio.play(ctx, url="https://youtu.be/ts7rkLrAios", name="shadow.mp3",
-                             channel=user.guild.voice_channels[0], wait=3)
+                             channel=member.guild.voice_channels[0], wait=3)
 
             try:
-                await user.move_to(s_channel)
+                await member.move_to(s_channel)
 
                 await audio.play(ctx, url="https://youtu.be/AVz_lLnp6wI", name="hell.mp3",
                                  channel=s_channel, wait=60)
@@ -178,7 +165,7 @@ class Polls(commands.Cog):
             except discord.errors.HTTPException:
                 await asyncio.sleep(60)
 
-            await user.remove_roles(role)
+            await member.remove_roles(role)
             await s_channel.delete()
             await category.delete()
 
@@ -188,15 +175,15 @@ class Polls(commands.Cog):
         else:
             await ctx.send("Not enough votes. Lucky you!")
 
-    @commands.command(brief="Closes the most recent poll. (admin)",
-                      description="The latest poll to be created will be closed with this command.")
-    @commands.has_permissions(administrator=True)
-    async def closepoll(self, ctx):
+    @commands.command(brief="Closes the most recent poll.",
+                      description="The latest poll to be created will be closed with this command.", hidden=True)
+    @commands.has_permissions(manage_messages=True)
+    async def closepoll(self, ctx: commands.Context):
         if Poll.current_poll:
             await Poll.current_poll[-1].close()
         else:
-            raise commands.CommandError("There is no poll currently running!")
+            return await ctx.send("There is no poll currently running!")
 
 
-def setup(bot):
-    bot.add_cog(Polls(bot))
+async def setup(bot):
+    await bot.add_cog(Polls(bot))

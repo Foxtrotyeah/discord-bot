@@ -1,1 +1,1 @@
-worker: python Discord
+worker: python TheBigGay/launcher.py
