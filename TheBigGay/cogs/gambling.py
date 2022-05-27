@@ -1,4 +1,5 @@
 import random
+import time
 import asyncio
 import discord
 from discord.ext import commands
@@ -407,8 +408,12 @@ class Gambling(commands.Cog):
         message = await ctx.send(embed=embed)
         await message.add_reaction('❌')
 
+        delay = 0.65
+
         while True:
-            await asyncio.sleep(1)
+            await asyncio.sleep(delay)
+
+            start = time.time()
 
             new_msg = discord.utils.get(self.bot.cached_messages, id=message.id)
             reactions = next((x for x in new_msg.reactions if x.emoji =='❌'), None)
@@ -430,7 +435,8 @@ class Gambling(commands.Cog):
                         await ctx.send("New Crash high score!")
                 break
 
-            multiplier += 0.2
+            previous = 1/multiplier
+            multiplier += 0.1
             profit = (bet * multiplier) - bet
 
             embed = discord.Embed(title="Crash", color=discord.Color.green())
@@ -440,8 +446,8 @@ class Gambling(commands.Cog):
             embed.add_field(name="\u200b", value=f"React with :x: to stop!\nUser: {ctx.author.mention}", inline=False)
             await message.edit(embed=embed)
 
-            chance = random.randint(1, 8)
-            if chance == 1:
+            risk = 1/(previous*multiplier)
+            if random.random() >= risk:
                 await mysql.update_balance(ctx, ctx.author, -bet)
 
                 embed = discord.Embed(title="Crash", color=discord.Color.red())
@@ -453,6 +459,13 @@ class Gambling(commands.Cog):
                 embed.add_field(name="\u200b", value=f"User: {ctx.author.mention}", inline=False)
                 await message.edit(embed=embed)
                 break
+
+            # Smooth out tick speed
+            total = time.time() - start
+            offset = 1 - total - delay
+            if offset > 0:
+                await asyncio.sleep(offset)
+
 
     @commands.command(brief="(1 Player) How many squares can you clear?",
                       description="There are two mines in a field. "
