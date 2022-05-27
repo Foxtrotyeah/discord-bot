@@ -5,6 +5,7 @@ import youtube_dl
 import asyncio
 
 from .utils import checks
+from .utils import mysql
 
 
 class Audio(commands.Cog, command_attrs=dict(hidden=True)):
@@ -66,6 +67,8 @@ class Audio(commands.Cog, command_attrs=dict(hidden=True)):
 
         await asyncio.sleep(wait)
         await voice.disconnect()
+
+        await mysql.update_balance(ctx, ctx.author, 20)
 
     @commands.command(brief="Soudbyte", description="What are you aiming at?")
     async def aim(self, ctx: commands.Context):
