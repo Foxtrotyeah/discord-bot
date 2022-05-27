@@ -1,6 +1,7 @@
 youtube_dl
 git+https://github.com/Rapptz/discord.py
 ffmpeg
+pynacl
 pymysql
 googletrans==3.1.0a0
 requests
