@@ -109,7 +109,7 @@ class GayBot(commands.AutoShardedBot):
         await self.invoke(ctx)
 
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        if isinstance(error, commands.MissingRequiredArgument):
+        if isinstance(error, (commands.MissingRequiredArgument, commands.BadArgument)):
             return await ctx.send_help(ctx.command)
 
         elif isinstance(error, commands.CommandOnCooldown):
