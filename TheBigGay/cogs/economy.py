@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-import mysql.connector
 
 from .utils import mysql
 from .utils import checks
