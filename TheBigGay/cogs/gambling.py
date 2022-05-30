@@ -627,6 +627,31 @@ class Gambling(commands.Cog):
                 await ctx.send("New Minesweeper high score!")
         return
 
+    @commands.command()
+    async def connect4(self, ctx: commands.Context, member: discord.Member, bet: int):
+        checks.is_valid_bet(ctx.author, bet)
+
+        board = (
+            "``` -----------------------------------" 
+            "\n| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |" 
+            "\n -----------------------------------" 
+            "\n| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |" 
+            "\n -----------------------------------" 
+            "\n| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |" 
+            "\n -----------------------------------" 
+            "\n| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |" 
+            "\n -----------------------------------" 
+            "\n| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |"
+            "\n -----------------------------------" 
+            "\n| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |" 
+            "\n -----------------------------------```"
+        )
+
+        while True:
+            if member.bot:
+                pass
+            break
+
 
 async def setup(bot):
     await bot.add_cog(Gambling(bot))
