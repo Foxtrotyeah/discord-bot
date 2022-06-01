@@ -23,7 +23,7 @@ def is_valid_bet(member: discord.Member, amt: int):
     if amt <= 0:
         raise commands.CommandError("You have to place a nonzero bet.")
 
-    if mysql.get_balance(member) >= amt:
+    if mysql.get_wallet(member)[0] >= amt:
         return True
     else:
         raise commands.CommandError(f"Insufficient funds.")
