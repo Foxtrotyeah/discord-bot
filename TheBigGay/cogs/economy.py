@@ -27,10 +27,10 @@ class Economy(commands.Cog):
     @checks.is_gambling_category()
     @checks.check_subsidy()
     async def subsidy(self, ctx: commands.Context):
-        mysql.subsidize(ctx.author)
+        balance = mysql.subsidize(ctx.author)
 
         await ctx.send(f"{ctx.author.mention}, 50 gaybucks have been added to your account, "
-                       f"courtesy of your sugar daddy 😉 (You now have {mysql.get_balance(ctx.author)} GB)")
+                       f"courtesy of your sugar daddy 😉 (You now have {balance} GB)")
 
     @commands.command(brief="Check the current economy standings.",
                       description="Shows each member's current balance in gaybucks.")
@@ -56,8 +56,8 @@ class Economy(commands.Cog):
         checks.is_valid_bet(ctx.author, amt)
 
         await mysql.update_balance(ctx, ctx.author, -amt)
-        await mysql.update_balance(ctx, member, amt)
-        await ctx.send(f"{ctx.author.mention} has just donated {amt} GB to {member.mention}! They now have {mysql.get_balance(member)} GB.")
+        balance = await mysql.update_balance(ctx, member, amt)
+        await ctx.send(f"{ctx.author.mention} has just donated {amt} GB to {member.mention}! They now have {balance} GB.")
 
 
 async def setup(bot):
