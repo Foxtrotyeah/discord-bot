@@ -138,7 +138,7 @@ class Gambling(commands.Cog):
 
         if result == pick:
             payout = bet * choice
-            await mysql.update_balance(ctx, ctx.author, int(payout - bet))
+            balance = await mysql.update_balance(ctx, ctx.author, int(payout - bet))
 
             embed = discord.Embed(
                 title="Odds",
@@ -149,13 +149,13 @@ class Gambling(commands.Cog):
                 ),
                 color=discord.Color.green()
             )
-            embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks.",
+            embed.add_field(name="Balance", value=f"You now have {balance} gaybucks.",
                             inline=False)
 
             if mysql.check_leaderboard("Odds", ctx.author, payout):
                 await ctx.send("New Odds high score!")
         else:
-            await mysql.update_balance(ctx, ctx.author, -bet)
+            balance = await mysql.update_balance(ctx, ctx.author, -bet)
             embed = discord.Embed(
                 title="Odds",
                 description=(
@@ -164,7 +164,7 @@ class Gambling(commands.Cog):
                 ),
                 color=discord.Color.red()
             )
-            embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks.",
+            embed.add_field(name="Balance", value=f"You now have {balance} gaybucks.",
                             inline=False)
 
         await message2.edit(embed=embed)
@@ -176,7 +176,7 @@ class Gambling(commands.Cog):
 
         options = ["❌", "✅"]
         suits = ["♠️", "♥️", "♣️", "♦️"]
-        values = ["🇦", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "🇯", "🇶", "🇰"]
+        values = ["2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "🇯", "🇶", "🇰", "🇦"]
 
         player1 = ctx.author
         player2 = member
@@ -213,30 +213,39 @@ class Gambling(commands.Cog):
             embed = discord.Embed(
                 title="Card Cutting",
                 description=(
-                    f"{player1.mention} has started a card-cutting bet with "
-                    f"{player2.mention} for 10 gaybucks each. Do you accept?"
-                    f"\n \n{player2.mention} has declined the bet."
+                    f"{player2.mention} has declined the bet."
                     f"\n \nUser: {ctx.author.mention}"
                 ),
                 color=discord.Color.red()
             )
             return await message.edit(embed=embed)
 
+        await message.delete()
+
         pot = bet * 2
 
         # Game starts
         description = (
-            f"Bets are in, with a total pot of **{pot} gaybucks**. Each player, you have 60 seconds while " 
-            f"I'm shuffling to hit ❌ for me to stop on a card. The player with the higher " 
+            f"Bets are in, with a total pot of **{pot} gaybucks**. {player1.mention}, {player2.mention}, you have 60 seconds " 
+            f"while I'm shuffling to hit ❌ for me to stop on a card. The player with the higher " 
             f"card wins!\n\n__**Cards:**__"
         )
         embed = discord.Embed(title="Card Cutting", description=description, color=discord.Color.green())
         card_cut = await ctx.send(embed=embed)
         await card_cut.add_reaction("❌")
 
-        def card():
+        used = int
+
+        def generate_card():
+            nonlocal used
+
             suit_num = random.randint(0, 3)
             number_num = random.randint(0, 12)
+
+            if (number_num * 10) + suit_num == used:
+                return generate_card()
+
+            used = (number_num * 10) + suit_num
 
             suit = suits[suit_num]
             number = values[number_num]
@@ -250,14 +259,14 @@ class Gambling(commands.Cog):
             try:
                 reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=check)
                 players.remove(user)
-                cards[user] = card()
+                cards[user] = generate_card()
 
                 description += f"\n{user.mention} {cards[user][0]}"
                 embed = discord.Embed(title="Card Cutting", description=description, color=discord.Color.green())
                 await card_cut.edit(embed=embed)
             except asyncio.TimeoutError:
-                cards[player1] = card()
-                cards[player2] = card()
+                cards[player1] = generate_card()
+                cards[player2] = generate_card()
 
                 description += (
                     f"\n{player1.mention} {cards[player1][0]}\n{player2.mention} {cards[player2][0]}"
@@ -267,21 +276,21 @@ class Gambling(commands.Cog):
                 await card_cut.edit(embed=embed)
                 break
 
-        final = sorted(cards.items(), key=lambda x: x[1])
+        final = sorted(cards.items(), key=lambda x: x[1][1], reverse=True)
         winner = final[0][0]
         loser = final[1][0]
 
-        await mysql.update_balance(ctx, winner, pot - bet)
-        await mysql.update_balance(ctx, loser, -bet)
+        winner_balance = await mysql.update_balance(ctx, winner, pot - bet)
+        loser_balance = await mysql.update_balance(ctx, loser, -bet)
 
         embed = discord.Embed(title="Card Cutting",
                               description=f"Congratulations, {winner.mention}! You've won **{pot} gaybucks**!",
                               color=discord.Color.green())
         embed.add_field(
-            name=f"Balance",
+            name=f"Balances",
             value=(
-                f"{winner.mention}: {mysql.get_balance(winner)} GB\n"
-                f"{loser.mention}: {mysql.get_balance(loser)} GB"
+                f"{winner.mention}: {winner_balance} GB\n"
+                f"{loser.mention}: {loser_balance} GB"
             ),
             inline=False
         )
@@ -352,44 +361,31 @@ class Gambling(commands.Cog):
             await asyncio.sleep(1)
 
         if winner == guess:
-            await mysql.update_balance(ctx, ctx.author, bet * 2)
-
-            description = f"**Horse {winner} Wins!**\n{ctx.author.mention} You have won {bet * 3} gaybucks!\n\n" \
-                          f"**Balance**\nYou now have {mysql.get_balance(ctx.author)} gaybucks"
-            embed2 = discord.Embed(title=f"Horse Racing", description=description, color=discord.Color.green())
-            await ctx.send(embed=embed2)
-
-            if mysql.check_leaderboard("Horse", ctx.author, bet * 3):
-                await ctx.send("New Horse high score!")
+            balance = await mysql.update_balance(ctx, ctx.author, bet * 2)
+            description = f"**Horse {winner} Wins!**\n{ctx.author.mention} You have won {bet * 3} gaybucks!"
+            color = discord.Color.green()
 
         elif int(third) == guess or (int(second) == guess and tie):
-            await mysql.update_balance(ctx, ctx.author, bet)
-
-            description = f"**Horse {second} Comes in Second (tie)!**\n{ctx.author.mention} You have won {bet * 2} gaybucks!\n\n" \
-                          f"**Balance**\nYou now have {mysql.get_balance(ctx.author)} gaybucks"
-            embed2 = discord.Embed(title=f"Horse Racing", description=description, color=discord.Color.green())
-            await ctx.send(embed=embed2)
-
-            if mysql.check_leaderboard("Horse", ctx.author, bet * 2):
-                await ctx.send("New Horse high score!")
+            balance = await mysql.update_balance(ctx, ctx.author, bet)
+            description = f"**Horse {second} Comes in Second (tie)!**\n{ctx.author.mention} You have won {bet * 2} gaybucks!"
+            color = discord.Color.green()          
 
         elif int(second) == guess:
-            await mysql.update_balance(ctx, ctx.author, bet)
-
-            description = f"**Horse {second} Comes in Second!**\n{ctx.author.mention} You have won {bet * 2} gaybucks!\n\n" \
-                          f"**Balance**\nYou now have {mysql.get_balance(ctx.author)} gaybucks"
-            embed2 = discord.Embed(title=f"Horse Racing", description=description, color=discord.Color.green())
-            await ctx.send(embed=embed2)
-
-            if mysql.check_leaderboard("Horse", ctx.author, bet * 2):
-                await ctx.send("New Horse high score!")
+            balance = await mysql.update_balance(ctx, ctx.author, bet)
+            description = f"**Horse {second} Comes in Second!**\n{ctx.author.mention} You have won {bet * 2} gaybucks!"
+            color = discord.Color.green()
 
         else:
-            await mysql.update_balance(ctx, ctx.author, -bet)
-            description = f"**Horse {winner} Wins**\n{ctx.author.mention} You have lost {bet} gaybucks.\n\n**Balance**" \
-                          f"\nYou now have {mysql.get_balance(ctx.author)} gaybucks"
-            embed2 = discord.Embed(title=f"Horse Racing", description=description, color=discord.Color.red())
-            await ctx.send(embed=embed2)
+            balance = await mysql.update_balance(ctx, ctx.author, -bet)
+            description = f"**Horse {winner} Wins**\n{ctx.author.mention} You have lost {bet} gaybucks."
+            color = discord.Color.red()
+
+        embed2 = discord.Embed(title=f"Horse Racing", description=description, color=color)
+        embed2.add_field(name="Balance", value=f"You now have {balance} gaybucks", inline=False)
+        await ctx.send(embed=embed2)
+
+        if mysql.check_leaderboard("Horse", ctx.author, bet * 2):
+                await ctx.send("New Horse high score!")
 
     @commands.command(brief="(1 Player) Cash out before the crash.",
                       description="The multiplier and your payout will keep going higher. "
@@ -419,52 +415,45 @@ class Gambling(commands.Cog):
             reactions = next((x for x in new_msg.reactions if x.emoji =='❌'), None)
             reactors = [user async for user in reactions.users()]
             if ctx.author in reactors:
-                if int(round(profit, 5)) != 0:
-                    await mysql.update_balance(ctx, ctx.author, int(round(profit, 5)))
-
                 embed = discord.Embed(title="Crash", color=discord.Color.green())
                 embed.add_field(name="Stopped at", value="{:.1f}x".format(multiplier), inline=True)
-                embed.add_field(name="\u200b", value="\u200b", inline=True)
-                embed.add_field(name="Profit", value=f"{int(round(profit, 5))} gaybucks", inline=True)
-                embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks.",
-                                inline=False)
-                embed.add_field(name="\u200b", value=f"User: {ctx.author.mention}", inline=False)
-                await message.edit(embed=embed)
-
-                if mysql.check_leaderboard("Crash", ctx.author, int(round(profit, 5))):
-                        await ctx.send("New Crash high score!")
                 break
 
             previous = 1/multiplier
             multiplier += 0.1
-            profit = (bet * multiplier) - bet
+            profit = int(round((bet * multiplier) - bet, 5))
+
+            risk = 1/(previous*multiplier)
+            if random.random() >= risk:
+                profit = -bet
+
+                embed = discord.Embed(title="Crash", color=discord.Color.red())
+                embed.add_field(name="Crashed at", value="{:.1f}x".format(multiplier), inline=True)
+                break
 
             embed = discord.Embed(title="Crash", color=discord.Color.green())
             embed.add_field(name="Multiplier", value="{:.1f}x".format(multiplier), inline=True)
             embed.add_field(name="\u200b", value="\u200b", inline=True)
-            embed.add_field(name="Profit", value=f"{int(round(profit, 5))} gaybucks", inline=True)
+            embed.add_field(name="Profit", value=f"{profit} gaybucks", inline=True)
             embed.add_field(name="\u200b", value=f"React with :x: to stop!\nUser: {ctx.author.mention}", inline=False)
             await message.edit(embed=embed)
-
-            risk = 1/(previous*multiplier)
-            if random.random() >= risk:
-                await mysql.update_balance(ctx, ctx.author, -bet)
-
-                embed = discord.Embed(title="Crash", color=discord.Color.red())
-                embed.add_field(name="Crashed at", value="{:.1f}x".format(multiplier), inline=True)
-                embed.add_field(name="\u200b", value="\u200b", inline=True)
-                embed.add_field(name="Profit", value=f"{-bet} gaybucks", inline=True)
-                embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks.",
-                                inline=False)
-                embed.add_field(name="\u200b", value=f"User: {ctx.author.mention}", inline=False)
-                await message.edit(embed=embed)
-                break
 
             # Smooth out tick speed
             total = time.time() - start
             offset = 1 - total - delay
             if offset > 0:
                 await asyncio.sleep(offset)
+
+        balance = await mysql.update_balance(ctx, ctx.author, profit)
+        
+        embed.add_field(name="\u200b", value="\u200b", inline=True)
+        embed.add_field(name="Profit", value=f"{profit} gaybucks", inline=True)
+        embed.add_field(name="Balance", value=f"You now have {balance} gaybucks.\n\nUser: {ctx.author.mention}",
+                        inline=False)
+        await message.edit(embed=embed)
+
+        if mysql.check_leaderboard("Crash", ctx.author, int(round(profit, 5))):
+            await ctx.send("New Crash high score!")
 
 
     @commands.command(brief="(1 Player) How many squares can you clear?",
@@ -569,12 +558,12 @@ class Gambling(commands.Cog):
                 field = field.replace(bombs[0], '💣')
                 await field_msg.edit(content=field)
 
-                await mysql.update_balance(ctx, ctx.author, -bet)
+                balance = await mysql.update_balance(ctx, ctx.author, -bet)
 
                 embed = discord.Embed(title="Minesweeper", color=discord.Color.red())
                 embed.add_field(name="KABOOM!", value=f"{ctx.author.mention} You lost {bet} gaybucks",
                                 inline=False)
-                embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks",
+                embed.add_field(name="Balance", value=f"You now have {balance} gaybucks",
                                 inline=False)
                 await ctx.send(embed=embed)
                 return
@@ -613,13 +602,12 @@ class Gambling(commands.Cog):
             field = field.replace(bombs[i], '💣')
         await field_msg.edit(content=field)
 
-        if total > 0:
-            await mysql.update_balance(ctx, ctx.author, total)
+        balance = await mysql.update_balance(ctx, ctx.author, total)
 
         embed = discord.Embed(title="Minesweeper", color=discord.Color.green())
         embed.add_field(name="Winner!", value=f"{ctx.author.mention} You have won {total} gaybucks",
                         inline=False)
-        embed.add_field(name="Balance", value=f"You now have {mysql.get_balance(ctx.author)} gaybucks",
+        embed.add_field(name="Balance", value=f"You now have {balance} gaybucks",
                         inline=False)
         await ctx.send(embed=embed)
 
@@ -628,29 +616,337 @@ class Gambling(commands.Cog):
         return
 
     @commands.command()
+    async def smokefire(self, ctx: commands.Context, bet: int):
+        checks.is_valid_bet(ctx.author, bet)
+
+        options = ["❌", "✅"]
+        smoke_fire = ["💨", "🔥"]
+        higher_lower = ["⬆", "⬇"]
+        in_out = ["↔", "↩"]
+
+        suits = ["♠️", "♥️", "♣️", "♦️"]
+        values = ["2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "🇯", "🇶", "🇰", "🇦"]
+
+        players = [ctx.author]
+
+        description = (
+            f"A round of smoke or fire is about to start. Buy-in is **{bet} gaybucks**. React with ✅ to join! Game starts in 30 seconds..."
+            f"\n{ctx.author.mention}, you can hit ❌ to start earlier."
+        )
+
+        embed = discord.Embed(title="Smoke or Fire", description=description, color=discord.Color.green())
+        embed.add_field(name="Players:", value=players[0].mention, inline=False)
+        message = await ctx.send(embed=embed)
+
+        for option in options:
+            await message.add_reaction(option)
+
+        blacklist = []
+
+        def react_check(reaction: discord.Reaction, user: discord.User):
+            if reaction.message.id == message.id and user.id not in blacklist and not user.bot:
+                if str(reaction) == "❌" and user.id == ctx.author.id:
+                    return True
+                elif str(reaction) == "✅" and user.id != ctx.author.id:
+                    blacklist.append(user.id)
+                    return checks.is_valid_bet(user, bet)
+
+                return False
+    
+        start = time.time()
+        while time.time() - start < 30:
+            try:
+                reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=react_check)
+                if str(reaction) == "❌":
+                    break
+        
+                players.append(user)
+
+                embed = discord.Embed(title="Smoke or Fire", description=description, color=discord.Color.green())
+
+                value = ""
+                for player in players:
+                    value += f"{player.mention}\n"
+                embed.add_field(name="Players:", value=value, inline=False)
+
+                await message.edit(embed=embed)
+                
+            except asyncio.TimeoutError:
+                return await message.delete()
+
+            except commands.CommandError:
+                continue
+
+        await message.clear_reactions()
+
+        game = {player: {'cards': [], 'profit': 0, 'round': 1,'inactive': False} for player in players}
+        used = []
+
+        def game_status() -> str:
+            description = ""
+            for player, values in game.items():
+                cards = '  '.join(x[0] + x[1] for x in values['cards'])
+                description += f"{player.mention}: {cards} \u200b\u200b **{values['profit']} GB**"
+
+                if values['inactive']:
+                    description += " (removed for inactivity)"
+
+                description += "\n"
+
+            return description
+
+        def generate_card() -> tuple[str, str]:
+            nonlocal used
+
+            suit_num = random.randint(0, 3)
+            value_num = random.randint(0, 12)
+
+            suit = suits[suit_num]
+            value = values[value_num]
+            card = (value, suit)
+
+            # No duplicate cards
+            if card in used:
+                return generate_card()
+
+            used.append(card)
+            return card
+
+        # import pdb
+        # pdb.set_trace()
+
+        i = 1
+        new_round = True
+        while i < 5:
+            if not players:
+                break
+
+            current_player = players[0]
+            game[current_player]['round'] += 1
+
+            description = f"It's your turn, {current_player.mention}."
+
+            if i == 1:
+                description += f" Smoke or Fire? For **{int(bet * 0.1 * i)} gaybuck(s)**."
+                emoji_list = smoke_fire
+            elif i == 2:
+                description += f" Higher or Lower? For **{int(bet * 0.1 * i)} gaybuck(s)**."
+                emoji_list = higher_lower
+            elif i == 3:
+                description += f" In Between or Out? For **{int(bet * 0.1 * i)} gaybuck(s)**."
+                emoji_list = in_out
+            elif i == 4:
+                description += f" Guess the suit. For **{int(bet * 0.1 * i)} gaybuck(s)**."
+                emoji_list = suits
+
+            embed = discord.Embed(title="Smoke or Fire", description=description, color=discord.Color.green())
+            embed.add_field(name="Players:", value=game_status(), inline=False)
+            await message.edit(embed=embed)
+
+            if new_round:
+                await message.clear_reactions()
+
+                for emoji in emoji_list:
+                    await message.add_reaction(emoji)
+
+                new_round = False
+
+            def react_check(reaction: discord.Reaction, user: discord.User):
+                return reaction.message.id == message.id and user.id == current_player.id
+
+            try:
+                reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
+            except asyncio.TimeoutError:
+                game[current_player]['profit'] -= int(bet * 0.1 * i)
+                game[current_player]['inactive'] = True
+
+                players.remove(current_player)
+                if game[players[0]]['round'] != i:
+                    i += 1
+                    new_round = True
+                continue
+
+            card = generate_card()
+
+            # Add card to player's list
+            game[current_player]['cards'].append(card)
+
+            if i == 1:
+                if ((reaction.emoji == "💨" and card[1] in ("♠️", "♣️")) or 
+                        (reaction.emoji == "🔥" and card[1] in ("♥️", "♦️"))):
+                    outcome = int(bet * 0.1 * i)
+                else:
+                    outcome = -int(bet * 0.1 * i)
+            elif i == 2:
+                card_value = values.index(card[0])
+                first_card_value = values.index(game[current_player]['cards'][0][0])
+
+                if ((reaction.emoji == "⬆" and card_value > first_card_value) or 
+                        (reaction.emoji == "⬇" and card_value < first_card_value)):
+                    outcome = int(bet * 0.1 * i)
+                else:
+                    outcome = -int(bet * 0.1 * i)
+            elif i == 3:
+                card_value = values.index(card[0])
+                first_card_value = values.index(game[current_player]['cards'][0][0])
+                second_card_value = values.index(game[current_player]['cards'][1][0])
+
+                value_range = range(*sorted((first_card_value, second_card_value)))
+
+                if ((reaction.emoji == "↔" and card_value in value_range) or 
+                        (reaction.emoji == "↩" and card_value not in value_range)):
+                    outcome = int(bet * 0.1 * i)
+                else:
+                    outcome = -int(bet * 0.1 * i)
+            elif i == 4:
+                if reaction.emoji == card[1]:
+                    outcome = int(bet * 0.1 * i)
+                else:
+                    outcome = -int(bet * 0.1 * i)
+
+            game[current_player]['profit'] += outcome
+
+            embed = discord.Embed(title="Smoke or Fire", description=description, color=discord.Color.green())
+            embed.add_field(name="Players:", value=game_status(), inline=False)
+            await message.edit(embed=embed)
+
+            # Rotate players list
+            players = players[1:] + players[:1]
+            if game[players[0]]['round'] != i:
+                i += 1
+                new_round = True
+
+        await asyncio.sleep(2)
+
+        await message.clear_reactions()
+
+        description = "Congratulations on your winnings... or losings!"
+
+        value = ""
+        for player, values in game.items():
+            balance = await mysql.update_balance(ctx, player, values['profit'])
+            value += f"{player.mention}: {balance} GB\n"
+
+        embed = discord.Embed(title="Smoke or Fire", description=description, color=discord.Color.green())
+        embed.add_field(name="Balance:", value=value, inline=False)
+        await message.edit(embed=embed)
+
+
+    # TODO This is much more complicated than I anticipated. Actual board and logic will required a lot of work.
+    @commands.command(hidden=True)
     async def connect4(self, ctx: commands.Context, member: discord.Member, bet: int):
         checks.is_valid_bet(ctx.author, bet)
 
-        board = (
-            "``` -----------------------------------" 
-            "\n| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |" 
-            "\n -----------------------------------" 
-            "\n| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |" 
-            "\n -----------------------------------" 
-            "\n| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |" 
-            "\n -----------------------------------" 
-            "\n| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |" 
-            "\n -----------------------------------" 
-            "\n| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |"
-            "\n -----------------------------------" 
-            "\n| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |" 
-            "\n -----------------------------------```"
-        )
+        # if member.id == ctx.author.id:
+
+        board = [
+            "``` -----------------------------------", 
+            "| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |", 
+            " -----------------------------------", 
+            "| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |", 
+            " -----------------------------------", 
+            "| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |", 
+            " -----------------------------------", 
+            "| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |", 
+            " -----------------------------------", 
+            "| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |",
+            " -----------------------------------", 
+            "| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |", 
+            " -----------------------------------```"
+        ]
+
+        yes_no = ["❌", "✅"]
+        options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣"]
+
+        players = [ctx.author]
+
+
+        if member.bot:
+            description = (
+                f"So, you've chosen death. I'll let you go first--not like it'll matter."
+                f"\n \nUser: {ctx.author.mention}"
+            )
+        else:
+            description = (
+                f"{member.mention} Do you accept the challenge? React to this message accordingly."
+                f"\n \nUser: {ctx.author.mention}"
+            )
+
+        embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.green())
+        message = await ctx.send(embed=embed)
+
+        if not member.bot:
+            for reaction in yes_no:
+                await message.add_reaction(reaction)
+
+            def react_check(reaction: discord.Reaction, user: discord.User):
+                if user.id == member.id and reaction.message.id == message.id and str(reaction) in yes_no:
+                    return checks.is_valid_bet(member.id, bet)
+
+            try:
+                reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
+            except asyncio.TimeoutError:
+                return await message.delete()
+
+            if str(reaction) == "❌":
+                return await message.delete()
+
+            await message.clear_reactions()
+
+            players.append(member)
+
+            description = (
+                f"{member.mention}, you start."
+                f"\n \nUsers: {ctx.author.mention} and {member.mention}"
+            )
+
+            embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.green())
+            await message.edit(embed=embed)
+
+        board_msg = await ctx.send(board)
+
+        for option in options:
+            await board_msg.add_reaction(option)
+
+        def react_check(reaction: discord.Reaction, user: discord.User):
+            nonlocal players
+            return user.id == players[0].id and reaction.message.id == message.id and str(reaction) in options
+
+
+        timeout = False
 
         while True:
             if member.bot:
-                pass
-            break
+                return
+            else:
+                try:
+                    reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
+                except asyncio.TimeoutError:
+                    timeout = True
+                    break 
+
+
+
+            players[1], players[0] = players[0], players[1]
+
+        # players[0] timed out.
+        if timeout:
+            player2_bal = await mysql.update_balance(ctx, players[1], bet * 2)
+            player1_bal = await mysql.update_balance(ctx, players[0], -bet)
+
+            description = f"Winner! Kinda. {member.mention} has forfeited (timeout)."
+            embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.green())
+            embed.add_field(
+                name=f"Balances",
+                value=(
+                    f"{players[1]}: {player2_bal} GB\n"
+                    f"{players[0]}: {player1_bal} GB"
+                ),
+                    inline=False
+                )
+            return await ctx.send(embed=embed)
+
+                
 
 
 async def setup(bot):
