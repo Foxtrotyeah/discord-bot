@@ -483,16 +483,16 @@ class Gambling(commands.Cog):
             if new not in bombs:
                 bombs.append(new)
 
-        next_rate = 0.15
-        next_score = int(round(next_rate * bet, 5))
-        total = 0
-
         remaining = 16
         odds = (remaining - 2) / remaining
+        cumulative_odds = odds
+
+        next_score = int(bet/odds)
+        total = 0
 
         embed = discord.Embed(title="Minesweeper", description=f"There are 2 bombs out there...",
                               color=discord.Color.green())
-        embed.add_field(name="Next Score", value=f"{next_score} gaybucks", inline=False)
+        embed.add_field(name="Next Score", value=f"+{next_score} gaybucks", inline=False)
         embed.add_field(name="Total Profit", value=f"{total} gaybucks", inline=False)
         embed.add_field(name="Odds of Scoring", value="{:.2f}%".format(odds * 100), inline=False)
         embed.add_field(name="\u200b", value=f"Select the row and column of the square you wish to reveal, or select ❌ to stop. Please wait until the reactions reset before inputting your next square.\nUser: {ctx.author.mention}", inline=False)
@@ -523,7 +523,6 @@ class Gambling(commands.Cog):
             
             return False
 
-        i = 1
         while True:
             try:
                 first_reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=check)
@@ -573,19 +572,18 @@ class Gambling(commands.Cog):
 
             total += next_score  # update total score with previous prediction
             remaining -= 1  # one less square
-            odds = (remaining - 2) / remaining
-
-            next_rate += i / 100  # exp. rate/score
-            next_score = int(round(next_rate * bet, 5))
-            i *= 1.9
-
             # Win!
             if remaining - 2 == 0:
                 break
 
+            # Calc next odds and score
+            odds = (remaining - 2) / remaining
+            cumulative_odds *= odds
+            next_score = int((bet/cumulative_odds) - total)
+
             embed = discord.Embed(title="Minesweeper", description=f"There are 2 bombs out there...",
                                   color=discord.Color.green())
-            embed.add_field(name="Next Score", value=f"{next_score} gaybucks", inline=False)
+            embed.add_field(name="Next Score", value=f"+{next_score} gaybucks", inline=False)
             embed.add_field(name="Total Profit", value=f"{total} gaybucks", inline=False)
             embed.add_field(name="Odds of Scoring", value="{:.2f}%".format(odds * 100), inline=False)
             embed.add_field(name="\u200b", value=f"Select the row and column, or ❌ to stop.\nUser: {ctx.author.mention}", inline=False)
