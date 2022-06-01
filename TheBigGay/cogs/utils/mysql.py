@@ -56,8 +56,9 @@ def _execute(sql: str, commit: bool = False) -> tuple[tuple, ...]:
 def create_economy_table(guild_id: int):
     sql = f"CREATE TABLE {str(guild_id) + '_economy'} "\
         "(user_id VARCHAR(20) NOT NULL, "\
-        "balance INTEGER(9) NOT NULL, "\
+        "balance INT(9) NOT NULL, "\
         "subsidy_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,"\
+        "tickets INT(9) NOT NULL" \
         "PRIMARY KEY (user_id))" 
     _execute(sql, commit=True)
     
@@ -66,7 +67,7 @@ def create_leaderboard_table(guild_id: int):
     sql = f"CREATE TABLE {str(guild_id) + '_leaderboard'} "\
         "(game VARCHAR(20) NOT NULL, "\
         "user_id VARCHAR(20) NOT NULL, "\
-        "score INTEGER(9) NOT NULL,"\
+        "score INT(9) NOT NULL,"\
         "date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,"\
         "PRIMARY KEY (game))"
     _execute(sql, commit=True)
@@ -92,6 +93,7 @@ def initialize_guild(guild: discord.Guild):
 def _check_status(table: str, user_id: str):
     _test_connection(lambda: cursor.execute(f"SELECT EXISTS(SELECT * from {table} WHERE user_id={user_id})"))
     
+    # If user isn't in DB, add a row for them.
     if cursor.fetchone()[0] != 1:
         cursor.execute(
             f"INSERT into {table}(user_id, balance, subsidy_date) "
@@ -112,10 +114,10 @@ def _get_user_data(member: discord.Member) -> tuple:
     return result
 
 
-def get_balance(member: discord.Member) -> int:
+def get_wallet(member: discord.Member) -> tuple[int, int]:
     result = _get_user_data(member)
 
-    return result[1]
+    return (result[1], result[3])
 
 
 # Get all economy data
@@ -130,14 +132,11 @@ def get_economy(guild: discord.Guild) -> tuple[tuple, ...]:
 
 
 # Updates a user's balance
-async def update_balance(ctx: commands.Context, member: discord.Member, amt: int) -> int:        
+def update_balance(member: discord.Member, amt: int) -> int:        
     table = str(member.guild.id) + "_economy"
     user_id = str(member.id)
 
-    _check_status(table, user_id)
-
-    cursor.execute(f"SELECT * from {table} WHERE user_id={user_id}")
-    result = cursor.fetchone()
+    result = _get_user_data(member)
 
     if amt != 0:
         new_bal = max(result[1] + amt, 0)
@@ -147,9 +146,6 @@ async def update_balance(ctx: commands.Context, member: discord.Member, amt: int
     else:
         new_bal = result[1]
 
-    if new_bal == 0:
-        await ctx.send(f"{member.mention} is broke! LOL")
-
     return new_bal
 
 
@@ -157,10 +153,7 @@ def subsidize(member: discord.Member) -> int:
     table = str(member.guild.id) + "_economy"
     user_id = str(member.id)
 
-    _check_status(table, user_id)
-
-    cursor.execute(f"SELECT * from {table} WHERE user_id={user_id}")
-    result = cursor.fetchone()
+    result = _get_user_data(member)
 
     new_bal = max(result[1] + 50, 0)
     
@@ -172,6 +165,32 @@ def subsidize(member: discord.Member) -> int:
     db.commit()
 
     return new_bal
+
+
+def buy_ticket(member: discord.Member, amt: int) -> int:
+    table = str(member.guild.id) + "_economy"
+    user_id = str(member.id)
+    bot_id = 837111781947998259
+
+    user_result = _get_user_data(member)
+    bot_result = _get_user_data(member.guild.get_member(bot_id))
+
+    user_bal = max(user_result[1] - (50 * amt), 0)
+    bot_bal = bot_result[1] + (50 * amt)
+
+    total = user_result[3] + amt
+
+    cursor.execute(f"UPDATE {table} SET balance={user_bal}, tickets={total} WHERE user_id={user_id}")
+    cursor.execute(f"UPDATE {table} SET balance={bot_bal} WHERE user_id={bot_id}")
+    db.commit()
+
+    return total
+
+
+def get_lottery(member: discord.Member) -> tuple[tuple, ...]:
+    result = _get_user_data(member)
+
+    return result
 
 
 def get_leaderboard(guild: discord.Guild) -> tuple[tuple, ...]:
