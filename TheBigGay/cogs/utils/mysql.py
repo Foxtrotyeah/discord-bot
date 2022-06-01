@@ -130,7 +130,7 @@ def get_economy(guild: discord.Guild) -> tuple[tuple, ...]:
 
 
 # Updates a user's balance
-async def update_balance(ctx: commands.Context, member: discord.Member, amt: int):
+async def update_balance(ctx: commands.Context, member: discord.Member, amt: int) -> int:        
     table = str(member.guild.id) + "_economy"
     user_id = str(member.id)
 
@@ -139,16 +139,21 @@ async def update_balance(ctx: commands.Context, member: discord.Member, amt: int
     cursor.execute(f"SELECT * from {table} WHERE user_id={user_id}")
     result = cursor.fetchone()
 
-    new_bal = max(result[1] + amt, 0)
+    if amt != 0:
+        new_bal = max(result[1] + amt, 0)
 
-    cursor.execute(f"UPDATE {table} SET balance={new_bal} WHERE user_id={user_id}")
-    db.commit()
+        cursor.execute(f"UPDATE {table} SET balance={new_bal} WHERE user_id={user_id}")
+        db.commit()
+    else:
+        new_bal = result[1]
 
     if new_bal == 0:
         await ctx.send(f"{member.mention} is broke! LOL")
 
+    return new_bal
 
-def subsidize(member: discord.Member):
+
+def subsidize(member: discord.Member) -> int:
     table = str(member.guild.id) + "_economy"
     user_id = str(member.id)
 
@@ -165,6 +170,8 @@ def subsidize(member: discord.Member):
         f"WHERE user_id={user_id}", (datetime.now(timezone).date(),)
     )
     db.commit()
+
+    return new_bal
 
 
 def get_leaderboard(guild: discord.Guild) -> tuple[tuple, ...]:
