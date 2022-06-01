@@ -17,9 +17,9 @@ class Economy(commands.Cog):
             mysql.initialize_guild(guild)
 
     @commands.command(brief="Get your current balance.", description="Retrieve your current balance in gaybucks.")
-    async def balance(self, ctx: commands.Context):
-        result = mysql.get_balance(ctx.author)
-        await ctx.send(f"{ctx.author.mention}, your balance is {result} gaybucks.")
+    async def wallet(self, ctx: commands.Context):
+        result = mysql.get_wallet(ctx.author)
+        await ctx.send(f"{ctx.author.mention}, your balance is **{result[0]}** gaybucks and you have **{result[1]}** lottery ticets.")
 
     @commands.command(brief="Poor? Use this once per day!",
                       description="You must have less than 50 gaybucks in your account to be eligible. "
@@ -30,7 +30,7 @@ class Economy(commands.Cog):
         balance = mysql.subsidize(ctx.author)
 
         await ctx.send(f"{ctx.author.mention}, 50 gaybucks have been added to your account, "
-                       f"courtesy of your sugar daddy 😉 (You now have {balance} GB)")
+                       f"courtesy of your sugar daddy 😉 (You now have **{balance} GB**)")
 
     @commands.command(brief="Check the current economy standings.",
                       description="Shows each member's current balance in gaybucks.")
@@ -55,9 +55,23 @@ class Economy(commands.Cog):
 
         checks.is_valid_bet(ctx.author, amt)
 
-        await mysql.update_balance(ctx, ctx.author, -amt)
-        balance = await mysql.update_balance(ctx, member, amt)
+        mysql.update_balance(ctx.author, -amt)
+        balance = mysql.update_balance(member, amt)
         await ctx.send(f"{ctx.author.mention} has just donated {amt} GB to {member.mention}! They now have {balance} GB.")
+
+    @commands.command(brief="Buy lottery tickets.", description="Lottery tickets get you a chance to win the monthly lottery.")
+    @checks.is_gambling_category()
+    async def ticket(self, ctx:commands.Context, amt: int = 1):
+        checks.is_valid_bet(ctx.author, amt * 50)
+
+        tickets = mysql.buy_ticket(ctx.author, amt)
+
+        await ctx.send(f"{ctx.author.mention}, you now have **{tickets}** lottery tickets.")
+
+    @commands.command()
+    @checks.is_gambling_category()
+    async def lottery(self, ctx: commands.Context):
+        pass
 
 
 async def setup(bot):
