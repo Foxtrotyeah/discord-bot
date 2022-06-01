@@ -60,7 +60,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
     async def mute(self, ctx: commands.Context, member: discord.Member):
         checks.is_valid_bet(ctx.author, 50)
         
-        await mysql.update_balance(ctx, ctx.author, -50)
+        mysql.update_balance(ctx.author, -50)
 
         role = discord.utils.get(ctx.guild.roles, name="Bitch")
         await member.add_roles(role)
@@ -83,7 +83,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
     async def boot(self, ctx: commands.Context, member: discord.Member):    
         checks.is_valid_bet(ctx.author, 100)
 
-        await mysql.update_balance(ctx, ctx.author, -100)
+        mysql.update_balance(ctx.author, -100)
 
         role = discord.utils.get(ctx.guild.roles, name="Banished")
         await member.add_roles(role)
@@ -109,7 +109,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
 
         await ctx.author.add_roles(role)
 
-        await mysql.update_balance(ctx, ctx.author, -200)
+        mysql.update_balance(ctx.author, -200)
 
         await asyncio.sleep(60*30)
         await ctx.author.remove_roles(role)
@@ -121,7 +121,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
 
         checks.is_valid_bet(ctx.author, 1000)
         
-        await mysql.update_balance(ctx, ctx.author, -1000)
+        mysql.update_balance(ctx.author, -1000)
 
         role = discord.utils.get(ctx.guild.roles, name="Daddy")
         await ctx.author.add_roles(role)

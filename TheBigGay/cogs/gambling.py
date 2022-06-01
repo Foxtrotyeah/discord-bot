@@ -138,7 +138,7 @@ class Gambling(commands.Cog):
 
         if result == pick:
             payout = bet * choice
-            balance = await mysql.update_balance(ctx, ctx.author, int(payout - bet))
+            balance = mysql.update_balance(ctx.author, int(payout - bet))
 
             embed = discord.Embed(
                 title="Odds",
@@ -155,7 +155,7 @@ class Gambling(commands.Cog):
             if mysql.check_leaderboard("Odds", ctx.author, payout):
                 await ctx.send("New Odds high score!")
         else:
-            balance = await mysql.update_balance(ctx, ctx.author, -bet)
+            balance = mysql.update_balance(ctx.author, -bet)
             embed = discord.Embed(
                 title="Odds",
                 description=(
@@ -280,8 +280,8 @@ class Gambling(commands.Cog):
         winner = final[0][0]
         loser = final[1][0]
 
-        winner_balance = await mysql.update_balance(ctx, winner, pot - bet)
-        loser_balance = await mysql.update_balance(ctx, loser, -bet)
+        winner_balance = mysql.update_balance(winner, pot - bet)
+        loser_balance = mysql.update_balance(loser, -bet)
 
         embed = discord.Embed(title="Card Cutting",
                               description=f"Congratulations, {winner.mention}! You've won **{pot} gaybucks**!",
@@ -361,22 +361,22 @@ class Gambling(commands.Cog):
             await asyncio.sleep(1)
 
         if winner == guess:
-            balance = await mysql.update_balance(ctx, ctx.author, bet * 2)
+            balance = mysql.update_balance(ctx.author, bet * 2)
             description = f"**Horse {winner} Wins!**\n{ctx.author.mention} You have won {bet * 3} gaybucks!"
             color = discord.Color.green()
 
         elif int(third) == guess or (int(second) == guess and tie):
-            balance = await mysql.update_balance(ctx, ctx.author, bet)
+            balance = mysql.update_balance(ctx.author, bet)
             description = f"**Horse {second} Comes in Second (tie)!**\n{ctx.author.mention} You have won {bet * 2} gaybucks!"
             color = discord.Color.green()          
 
         elif int(second) == guess:
-            balance = await mysql.update_balance(ctx, ctx.author, bet)
+            balance = mysql.update_balance(ctx.author, bet)
             description = f"**Horse {second} Comes in Second!**\n{ctx.author.mention} You have won {bet * 2} gaybucks!"
             color = discord.Color.green()
 
         else:
-            balance = await mysql.update_balance(ctx, ctx.author, -bet)
+            balance = mysql.update_balance(ctx.author, -bet)
             description = f"**Horse {winner} Wins**\n{ctx.author.mention} You have lost {bet} gaybucks."
             color = discord.Color.red()
 
@@ -444,7 +444,7 @@ class Gambling(commands.Cog):
             if offset > 0:
                 await asyncio.sleep(offset)
 
-        balance = await mysql.update_balance(ctx, ctx.author, profit)
+        balance = mysql.update_balance(ctx.author, profit)
         
         embed.add_field(name="\u200b", value="\u200b", inline=True)
         embed.add_field(name="Profit", value=f"{profit} gaybucks", inline=True)
@@ -557,7 +557,7 @@ class Gambling(commands.Cog):
                 field = field.replace(bombs[0], '💣')
                 await field_msg.edit(content=field)
 
-                balance = await mysql.update_balance(ctx, ctx.author, -bet)
+                balance = mysql.update_balance(ctx.author, -bet)
 
                 embed = discord.Embed(title="Minesweeper", color=discord.Color.red())
                 embed.add_field(name="KABOOM!", value=f"{ctx.author.mention} You lost {bet} gaybucks",
@@ -600,7 +600,7 @@ class Gambling(commands.Cog):
             field = field.replace(bombs[i], '💣')
         await field_msg.edit(content=field)
 
-        balance = await mysql.update_balance(ctx, ctx.author, total)
+        balance = mysql.update_balance(ctx.author, total)
 
         embed = discord.Embed(title="Minesweeper", color=discord.Color.green())
         embed.add_field(name="Winner!", value=f"{ctx.author.mention} You have won {total} gaybucks",
@@ -613,7 +613,9 @@ class Gambling(commands.Cog):
                 await ctx.send("New Minesweeper high score!")
         return
 
-    @commands.command()
+    @commands.command(brief="(1+ Players) Smoke or fire, the card game.",
+                      description="Just like the first four rounds of the card game Smoke or Fire. "
+                                  "You can play by yourself or up to 13 players.")
     async def smokefire(self, ctx: commands.Context, bet: int):
         checks.is_valid_bet(ctx.author, bet)
 
@@ -652,7 +654,7 @@ class Gambling(commands.Cog):
                 return False
     
         start = time.time()
-        while time.time() - start < 30:
+        while time.time() - start < 30 and len(blacklist) <= 13:
             try:
                 reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=react_check)
                 if str(reaction) == "❌":
@@ -709,9 +711,6 @@ class Gambling(commands.Cog):
 
             used.append(card)
             return card
-
-        # import pdb
-        # pdb.set_trace()
 
         i = 1
         new_round = True
@@ -822,12 +821,15 @@ class Gambling(commands.Cog):
 
         value = ""
         for player, values in game.items():
-            balance = await mysql.update_balance(ctx, player, values['profit'])
+            balance = mysql.update_balance(player, values['profit'])
             value += f"{player.mention}: {balance} GB\n"
 
         embed = discord.Embed(title="Smoke or Fire", description=description, color=discord.Color.green())
         embed.add_field(name="Balance:", value=value, inline=False)
         await message.edit(embed=embed)
+
+        if mysql.check_leaderboard("SmokeOrFire", ctx.author, values['profit']):
+            await ctx.send("New Smoke or Fire high score!")
 
 
     # TODO This is much more complicated than I anticipated. Actual board and logic will required a lot of work.
@@ -929,8 +931,8 @@ class Gambling(commands.Cog):
 
         # players[0] timed out.
         if timeout:
-            player2_bal = await mysql.update_balance(ctx, players[1], bet * 2)
-            player1_bal = await mysql.update_balance(ctx, players[0], -bet)
+            player2_bal = mysql.update_balance(players[1], bet * 2)
+            player1_bal = mysql.update_balance(players[0], -bet)
 
             description = f"Winner! Kinda. {member.mention} has forfeited (timeout)."
             embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.green())
