@@ -43,6 +43,13 @@ class Gambling(commands.Cog):
             position=0
         )
 
+        await guild.create_text_channel(
+            "high-roller-hall",
+            topic="Private gambling for the pros.",
+            category=gambling_category,
+            position=0
+        )
+
     # No messages except for commands in the Gambling category.
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -79,7 +86,7 @@ class Gambling(commands.Cog):
     @commands.command(brief="(1 Player) What are the odds?",
                       description="What are the odds I give you money? (1 in...?)")
     async def odds(self, ctx: commands.Context, bet: int):
-        checks.is_valid_bet(ctx.author, bet)
+        checks.is_valid_bet(ctx, ctx.author, bet)
 
         options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
 
@@ -138,7 +145,7 @@ class Gambling(commands.Cog):
 
         if result == pick:
             payout = bet * choice
-            balance = mysql.update_balance(ctx.author, int(payout - bet))
+            balance = mysql.update_balance(ctx.author, payout - bet)
 
             embed = discord.Embed(
                 title="Odds",
@@ -156,6 +163,7 @@ class Gambling(commands.Cog):
                 await ctx.send("New Odds high score!")
         else:
             balance = mysql.update_balance(ctx.author, -bet)
+            mysql.add_to_lottery(self.bot, ctx.guild, bet)
             embed = discord.Embed(
                 title="Odds",
                 description=(
@@ -172,7 +180,7 @@ class Gambling(commands.Cog):
     @commands.command(brief="(2 Players) Higher card wins.",
                       discription="Bet with a friend to see who wins with a higher card.")
     async def cardcut(self, ctx: commands.Context, member: discord.Member, bet: int):
-        checks.is_valid_bet(ctx.author, bet)
+        checks.is_valid_bet(ctx, ctx.author, bet)
 
         options = ["❌", "✅"]
         suits = ["♠️", "♥️", "♣️", "♦️"]
@@ -202,7 +210,7 @@ class Gambling(commands.Cog):
 
         def react_check(reaction: discord.Reaction, user: discord.User):
             if user.id == player2.id and reaction.message.id == message.id and str(reaction) in options:
-                return checks.is_valid_bet(user, bet)
+                return checks.is_valid_bet(ctx, user, bet)
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
@@ -282,6 +290,7 @@ class Gambling(commands.Cog):
 
         winner_balance = mysql.update_balance(winner, pot - bet)
         loser_balance = mysql.update_balance(loser, -bet)
+        mysql.add_to_lottery(self.bot, ctx.guild, bet)
 
         embed = discord.Embed(title="Card Cutting",
                               description=f"Congratulations, {winner.mention}! You've won **{pot} gaybucks**!",
@@ -302,7 +311,7 @@ class Gambling(commands.Cog):
     @commands.command(brief="(1 Player) Horse race.",
                       discription="Bet with 5x odds on which of the five horses will reach the finish line first.")
     async def horse(self, ctx: commands.Context, bet: int):        
-        checks.is_valid_bet(ctx.author, bet)
+        checks.is_valid_bet(ctx, ctx.author, bet)
 
         horses = [
             "🏁- - - - - 🏇**1.**",
@@ -377,6 +386,7 @@ class Gambling(commands.Cog):
 
         else:
             balance = mysql.update_balance(ctx.author, -bet)
+            mysql.add_to_lottery(self.bot, ctx.guild, bet)
             description = f"**Horse {winner} Wins**\n{ctx.author.mention} You have lost {bet} gaybucks."
             color = discord.Color.red()
 
@@ -391,7 +401,7 @@ class Gambling(commands.Cog):
                       description="The multiplier and your payout will keep going higher. "
                                   "If it crashes before you stop it, you lose your bet.")
     async def crash(self, ctx: commands.Context, bet: int):
-        checks.is_valid_bet(ctx.author, bet)
+        checks.is_valid_bet(ctx, ctx.author, bet)
 
         multiplier = 1.0
         profit = (bet * multiplier) - bet
@@ -421,11 +431,12 @@ class Gambling(commands.Cog):
 
             previous = 1/multiplier
             multiplier += 0.1
-            profit = int(round((bet * multiplier) - bet, 5))
+            profit = int(round((bet * multiplier) - bet))
 
             risk = 1/(previous*multiplier)
             if random.random() >= risk:
                 profit = -bet
+                mysql.add_to_lottery(self.bot, ctx.guild, bet)
 
                 embed = discord.Embed(title="Crash", color=discord.Color.red())
                 embed.add_field(name="Crashed at", value="{:.1f}x".format(multiplier), inline=True)
@@ -452,7 +463,7 @@ class Gambling(commands.Cog):
                         inline=False)
         await message.edit(embed=embed)
 
-        if mysql.check_leaderboard("Crash", ctx.author, int(round(profit, 5))):
+        if mysql.check_leaderboard("Crash", ctx.author, int(round(profit))):
             await ctx.send("New Crash high score!")
 
 
@@ -460,7 +471,7 @@ class Gambling(commands.Cog):
                       description="There are two mines in a field. "
                                   "Clear as many squares as you can before you blow up.")
     async def minesweeper(self, ctx: commands.Context, bet: int):
-        checks.is_valid_bet(ctx.author, bet)
+        checks.is_valid_bet(ctx, ctx.author, bet)
 
         field = (
             "``` -------------------" 
@@ -487,7 +498,7 @@ class Gambling(commands.Cog):
         odds = (remaining - 2) / remaining
         cumulative_odds = odds
 
-        next_score = int(bet/odds)
+        next_score = int(round(bet/odds))
         total = 0
 
         embed = discord.Embed(title="Minesweeper", description=f"There are 2 bombs out there...",
@@ -558,6 +569,7 @@ class Gambling(commands.Cog):
                 await field_msg.edit(content=field)
 
                 balance = mysql.update_balance(ctx.author, -bet)
+                mysql.add_to_lottery(self.bot, ctx.guild, bet)
 
                 embed = discord.Embed(title="Minesweeper", color=discord.Color.red())
                 embed.add_field(name="KABOOM!", value=f"{ctx.author.mention} You lost {bet} gaybucks",
@@ -579,7 +591,7 @@ class Gambling(commands.Cog):
             # Calc next odds and score
             odds = (remaining - 2) / remaining
             cumulative_odds *= odds
-            next_score = int((bet/cumulative_odds) - total)
+            next_score = int(round((bet/cumulative_odds) - total))
 
             embed = discord.Embed(title="Minesweeper", description=f"There are 2 bombs out there...",
                                   color=discord.Color.green())
@@ -617,7 +629,7 @@ class Gambling(commands.Cog):
                       description="Just like the first four rounds of the card game Smoke or Fire. "
                                   "You can play by yourself or up to 13 players.")
     async def smokefire(self, ctx: commands.Context, bet: int):
-        checks.is_valid_bet(ctx.author, bet)
+        checks.is_valid_bet(ctx, ctx.author, bet)
 
         options = ["❌", "✅"]
         smoke_fire = ["💨", "🔥"]
@@ -649,7 +661,7 @@ class Gambling(commands.Cog):
                     return True
                 elif str(reaction) == "✅" and user.id != ctx.author.id:
                     blacklist.append(user.id)
-                    return checks.is_valid_bet(user, bet)
+                    return checks.is_valid_bet(ctx, user, bet)
 
                 return False
     
@@ -724,16 +736,16 @@ class Gambling(commands.Cog):
             description = f"It's your turn, {current_player.mention}."
 
             if i == 1:
-                description += f" Smoke or Fire? For **{int(bet * 0.1 * i)} gaybuck(s)**."
+                description += f" Smoke or Fire? For **{int(round(bet * 0.1 * i))} gaybuck(s)**."
                 emoji_list = smoke_fire
             elif i == 2:
-                description += f" Higher or Lower? For **{int(bet * 0.1 * i)} gaybuck(s)**."
+                description += f" Higher or Lower? For **{int(round(bet * 0.1 * i))} gaybuck(s)**."
                 emoji_list = higher_lower
             elif i == 3:
-                description += f" In Between or Out? For **{int(bet * 0.1 * i)} gaybuck(s)**."
+                description += f" In Between or Out? For **{int(round(bet * 0.1 * i))} gaybuck(s)**."
                 emoji_list = in_out
             elif i == 4:
-                description += f" Guess the suit. For **{int(bet * 0.1 * i)} gaybuck(s)**."
+                description += f" Guess the suit. For **{int(round(bet * 0.1 * i))} gaybuck(s)**."
                 emoji_list = suits
 
             embed = discord.Embed(title="Smoke or Fire", description=description, color=discord.Color.green())
@@ -754,7 +766,7 @@ class Gambling(commands.Cog):
             try:
                 reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
             except asyncio.TimeoutError:
-                game[current_player]['profit'] -= int(bet * 0.1 * i)
+                game[current_player]['profit'] -= int(round(bet * 0.1 * i))
                 game[current_player]['inactive'] = True
 
                 players.remove(current_player)
@@ -771,18 +783,18 @@ class Gambling(commands.Cog):
             if i == 1:
                 if ((reaction.emoji == "💨" and card[1] in ("♠️", "♣️")) or 
                         (reaction.emoji == "🔥" and card[1] in ("♥️", "♦️"))):
-                    outcome = int(bet * 0.1 * i)
+                    outcome = int(round(bet * 0.1 * i))
                 else:
-                    outcome = -int(bet * 0.1 * i)
+                    outcome = -int(round(bet * 0.1 * i))
             elif i == 2:
                 card_value = values.index(card[0])
                 first_card_value = values.index(game[current_player]['cards'][0][0])
 
                 if ((reaction.emoji == "⬆" and card_value > first_card_value) or 
                         (reaction.emoji == "⬇" and card_value < first_card_value)):
-                    outcome = int(bet * 0.1 * i)
+                    outcome = int(round(bet * 0.1 * i))
                 else:
-                    outcome = -int(bet * 0.1 * i)
+                    outcome = -int(round(bet * 0.1 * i))
             elif i == 3:
                 card_value = values.index(card[0])
                 first_card_value = values.index(game[current_player]['cards'][0][0])
@@ -792,14 +804,14 @@ class Gambling(commands.Cog):
 
                 if ((reaction.emoji == "↔" and card_value in value_range) or 
                         (reaction.emoji == "↩" and card_value not in value_range)):
-                    outcome = int(bet * 0.1 * i)
+                    outcome = int(round(bet * 0.1 * i))
                 else:
-                    outcome = -int(bet * 0.1 * i)
+                    outcome = -int(round(bet * 0.1 * i))
             elif i == 4:
                 if reaction.emoji == card[1]:
-                    outcome = int(bet * 0.1 * i)
+                    outcome = int(round(bet * 0.1 * i))
                 else:
-                    outcome = -int(bet * 0.1 * i)
+                    outcome = -int(round(bet * 0.1 * i))
 
             game[current_player]['profit'] += outcome
 
@@ -822,20 +834,22 @@ class Gambling(commands.Cog):
         value = ""
         for player, values in game.items():
             balance = mysql.update_balance(player, values['profit'])
+            if values['profit'] < 0:
+                if mysql.check_leaderboard("SmokeOrFire", player, values['profit']):
+                    await ctx.send("New Smoke or Fire high score!")
+                mysql.add_to_lottery(self.bot, ctx.guild, bet)
+
             value += f"{player.mention}: {balance} GB\n"
 
         embed = discord.Embed(title="Smoke or Fire", description=description, color=discord.Color.green())
         embed.add_field(name="Balance:", value=value, inline=False)
         await message.edit(embed=embed)
 
-        if mysql.check_leaderboard("SmokeOrFire", ctx.author, values['profit']):
-            await ctx.send("New Smoke or Fire high score!")
-
 
     # TODO This is much more complicated than I anticipated. Actual board and logic will required a lot of work.
     @commands.command(hidden=True)
     async def connect4(self, ctx: commands.Context, member: discord.Member, bet: int):
-        checks.is_valid_bet(ctx.author, bet)
+        checks.is_valid_bet(ctx, ctx.author, bet)
 
         # if member.id == ctx.author.id:
 
@@ -881,7 +895,7 @@ class Gambling(commands.Cog):
 
             def react_check(reaction: discord.Reaction, user: discord.User):
                 if user.id == member.id and reaction.message.id == message.id and str(reaction) in yes_no:
-                    return checks.is_valid_bet(member.id, bet)
+                    return checks.is_valid_bet(ctx, user, bet)
 
             try:
                 reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
@@ -933,6 +947,7 @@ class Gambling(commands.Cog):
         if timeout:
             player2_bal = mysql.update_balance(players[1], bet * 2)
             player1_bal = mysql.update_balance(players[0], -bet)
+            mysql.add_to_lottery(self.bot, ctx.guild, bet)
 
             description = f"Winner! Kinda. {member.mention} has forfeited (timeout)."
             embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.green())
