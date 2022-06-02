@@ -26,6 +26,10 @@ async def adminlite_role(guild: discord.Guild):
 async def daddy_role(guild: discord.Guild):
     await guild.create_role(name="Daddy", color=discord.Color.red())
 
+# creates the 'mommy' role
+async def mommy_role(guild: discord.Guild):
+    await guild.create_role(name="Mommy", color=discord.Color.fuchsia())
+
 
 # creates the 'he/him' role
 async def he_role(guild: discord.Guild):
@@ -81,6 +85,7 @@ class Roles(commands.Cog):
         "Bitch": bitch_role,
         "Admin Lite": adminlite_role,
         "Daddy": daddy_role,
+        "Mommy": mommy_role,
         "she/her": she_role,
         "he/him": he_role,
         "they/them": they_role,
@@ -164,6 +169,14 @@ class Roles(commands.Cog):
 
         for key, value in self.funny.items():
             await funny_message.add_reaction(key)
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        # 'Mommy' role functionality
+        roles = [x.name for x in message.author.roles]
+        if "Mommy" in roles:
+            ctx = await self.bot.get_context(message)
+            await ctx.send("*yes, mommy~*")
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
