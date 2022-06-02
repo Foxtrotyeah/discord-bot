@@ -114,6 +114,19 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
         await asyncio.sleep(60*30)
         await ctx.author.remove_roles(role)
 
+    @commands.command(description="*1000 gb*: Lay a trap for someone upon joining voice chat.")
+    async def trap(self, ctx: commands.Context, member: discord.Member):    
+        checks.is_valid_bet(ctx, ctx.author, 1000)
+
+        mysql.update_balance(ctx.author, -1000)
+
+        role = discord.utils.get(ctx.guild.roles, name="Windows")
+        await member.add_roles(role)
+
+        await ctx.send(f"{ctx.author.mention} Done! Deleting the evidence now...", delete_after=5)
+        await asyncio.sleep(5)
+        await ctx.message.delete()
+
     # 'Daddy' title is no longer able to be bought. Role is still available to those that bought it previously.
     # @commands.command(description="*2000 gb*: Receive the permanent title of 'Daddy'.")
     # async def daddy(self, ctx: commands.Context):
