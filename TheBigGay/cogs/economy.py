@@ -28,7 +28,7 @@ class Economy(commands.Cog):
         if not drawing_event:
             await self.create_lottery_event(guild)
 
-        # Lottery is held on the last day of every month.
+        # Lottery is held on the last day of every month. Heroku reloads daily, so this will be checked daily.
         now = datetime.now(mysql.timezone)
         tomorrows_month = (now + timedelta(days=1)).month
         if now.month != tomorrows_month:
