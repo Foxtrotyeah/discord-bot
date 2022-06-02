@@ -5,9 +5,17 @@ from datetime import datetime
 from . import mysql
 
 
+high_roller_minimum = 1000
+
+
 class WrongChannel(commands.CheckFailure):
     def __str__(self):
         return "This command is only allowed in the gambling hall channels."
+
+
+class MinimumBet(commands.CheckFailure):
+    def __str__(self):
+        return f"Bets in the high roller hall must meet the minimum bet: **{high_roller_minimum} gaybucks**."
 
 
 class IneligibleForSubsidy(commands.CheckFailure):
@@ -19,14 +27,17 @@ class IneligibleForSubsidy(commands.CheckFailure):
         )
 
 
-def is_valid_bet(member: discord.Member, amt: int):
+def is_valid_bet(ctx: commands.Context, member: discord.Member, amt: int):
     if amt <= 0:
         raise commands.CommandError("You have to place a nonzero bet.")
 
-    if mysql.get_wallet(member)[0] >= amt:
-        return True
-    else:
+    if mysql.get_wallet(member)[0] < amt:
         raise commands.CommandError(f"Insufficient funds.")
+
+    if ctx.channel.name == 'high-roller-hall' and amt < high_roller_minimum:
+        raise MinimumBet()
+
+    return True
 
 
 def is_gambling_category_pred(ctx: commands.Context) -> bool:
@@ -43,7 +54,7 @@ def is_gambling_category():
 # Check eligibility status for a subsidy
 def check_subsidy():
     def pred(ctx: commands.Context) -> bool:
-        result = mysql._get_user_data(ctx.author)
+        result = mysql._get_user_data(ctx.author.id, ctx.guild.id)
 
         if result[1] < 100 and result[2].date() < datetime.now(mysql.timezone).date():
             return True
