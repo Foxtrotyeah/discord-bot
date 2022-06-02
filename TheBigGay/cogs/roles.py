@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 
+from .audio import play
+
 
 # creates the 'banished' role
 async def banish_role(guild: discord.Guild):
@@ -20,6 +22,11 @@ async def bitch_role(guild: discord.Guild):
 async def adminlite_role(guild: discord.Guild):
     perms = discord.Permissions(1110751554672)
     await guild.create_role(name="Admin Lite", hoist=True, color=discord.Color.red(), permissions=perms)
+
+
+# creates the 'windows' role
+async def windows_role(guild: discord.Guild):
+    await guild.create_role(name="Windows", color=discord.Color.dark_blue())
 
 
 # creates the 'daddy' role
@@ -84,6 +91,7 @@ class Roles(commands.Cog):
         "Banished": banish_role,
         "Bitch": bitch_role,
         "Admin Lite": adminlite_role,
+        "Windows": windows_role,
         "Daddy": daddy_role,
         "Mommy": mommy_role,
         "she/her": she_role,
@@ -183,14 +191,29 @@ class Roles(commands.Cog):
         if after.channel is None:
             return
 
-        if "Banished" in [x.name for x in member.roles]:
+        roles = [x.name for x in member.roles]
+
+        if "Windows" in roles:
+            role = discord.utils.get(member.guild.roles, name="Windows")
+            await member.remove_roles(role)
+
+            innocent = [individual for individual in after.channel.members if individual.id != member.id]
+            for member in innocent:
+                await member.edit(deafen=True)
+
+            await play(self.bot, url="https://youtu.be/6Joyj0dmkug", name="windows.mp3", wait=5)
+
+            for member in innocent:
+                await member.edit(deafen=False)
+
+        if "Banished" in roles:
             if after.channel.name != "Hell":
                 try:
                     return await member.move_to(None)
                 except Exception as e:
                     print(e)
 
-        if "Bitch" not in [x.name for x in member.roles]:
+        if "Bitch" not in roles:
             if member.voice.mute:
                 await member.edit(mute=False)
         # If the member has the bitch role but isn't muted yet
