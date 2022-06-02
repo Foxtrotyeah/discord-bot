@@ -43,9 +43,9 @@ class Audio(commands.Cog, command_attrs=dict(hidden=True)):
     #     await ctx.send('https://www.youtube.com/watch?v=' + search_results[0])
 
     # todo Make this functional as a bot command. How to disconnect?? Don't know how to realize when audio is finished
-    # TODO Add a check to see if bot is already connected to a voice channel
+    
     async def play(self, ctx: commands.Context, url: str, name: str, channel: discord.VoiceChannel, wait: int = 60 * 5):
-        checks.is_valid_bet(ctx.author, 20)
+        checks.is_valid_bet(ctx, ctx.author, 20)
 
         is_there = os.path.isfile(f"./tracks/{name}")
         if not is_there:
@@ -61,8 +61,12 @@ class Audio(commands.Cog, command_attrs=dict(hidden=True)):
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
 
-        await channel.connect()
         voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
+        if voice.is_playing():
+            return ctx.send("I'm already playing something. Wait a sec")
+
+        await channel.connect()
+
         voice.play(discord.FFmpegPCMAudio(source=f"./tracks/{name}"))
 
         await asyncio.sleep(wait)
