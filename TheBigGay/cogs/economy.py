@@ -26,7 +26,7 @@ class Economy(commands.Cog):
         events = await guild.fetch_scheduled_events()
         drawing_event = [event for event in events if event.name == "Lottery Drawing"]
         if not drawing_event:
-            self.create_lottery_event(guild)
+            await self.create_lottery_event(guild)
 
         # Lottery is held on the last day of every month.
         now = datetime.now(mysql.timezone)
@@ -42,7 +42,7 @@ class Economy(commands.Cog):
             message = await main_hall.send(embed=embed)
             await message.pin()
 
-            self.create_lottery_event(guild, next_month=True)
+            await self.create_lottery_event(guild, next_month=True)
 
     async def create_lottery_event(self, guild: discord.Guild, next_month: bool = False):
         if next_month:
