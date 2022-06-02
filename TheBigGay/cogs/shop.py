@@ -58,7 +58,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
 
     @commands.command(description="*75 gb*: Mutes a user for 60 seconds.")
     async def mute(self, ctx: commands.Context, member: discord.Member):
-        checks.is_valid_bet(ctx.author, 50)
+        checks.is_valid_bet(ctx, ctx.author, 50)
         
         mysql.update_balance(ctx.author, -50)
 
@@ -81,7 +81,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
 
     @commands.command(description="*100 gb*: Force a user to disconnect until they message The Big Gay.")
     async def boot(self, ctx: commands.Context, member: discord.Member):    
-        checks.is_valid_bet(ctx.author, 100)
+        checks.is_valid_bet(ctx, ctx.author, 100)
 
         mysql.update_balance(ctx.author, -100)
 
@@ -103,7 +103,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
                 f"{ctx.author.mention} You still have more time on your current admin privileges!"
             )
 
-        checks.is_valid_bet(ctx.author, 200)
+        checks.is_valid_bet(ctx, ctx.author, 200)
         
         role = discord.utils.get(ctx.guild.roles, name="Admin Lite")
 
@@ -114,18 +114,32 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
         await asyncio.sleep(60*30)
         await ctx.author.remove_roles(role)
 
-    @commands.command(description="*2000 gb*: Receive the permanent title of 'Daddy'.")
-    async def daddy(self, ctx: commands.Context):
-        if "Daddy" in [x.name for x in ctx.author.roles]:
-            return await ctx.send(f"{ctx.author.mention} You're already a daddy! What more do you want?")
+    # 'Daddy' title is no longer able to be bought. Role is still available to those that bought it previously.
+    # @commands.command(description="*2000 gb*: Receive the permanent title of 'Daddy'.")
+    # async def daddy(self, ctx: commands.Context):
+    #     if "Daddy" in [x.name for x in ctx.author.roles]:
+    #         return await ctx.send(f"{ctx.author.mention} You're already a daddy! What more do you want?")
 
-        checks.is_valid_bet(ctx.author, 1000)
+    #     checks.is_valid_bet(ctx.author, 1000)
         
-        mysql.update_balance(ctx.author, -1000)
+    #     mysql.update_balance(ctx.author, -1000)
 
-        role = discord.utils.get(ctx.guild.roles, name="Daddy")
+    #     role = discord.utils.get(ctx.guild.roles, name="Daddy")
+    #     await ctx.author.add_roles(role)
+    #     await ctx.send(f"{ctx.author.mention} Congratulations daddy! ;)")
+
+    @commands.command(description="*10,000 gb*: Receive the permanent title of 'Mommy'.")
+    async def mommy(self, ctx: commands.Context):
+        if "Mommy" in [x.name for x in ctx.author.roles]:
+            return await ctx.send(f"{ctx.author.mention} You're already a mommy! What more do you want?")
+
+        checks.is_valid_bet(ctx, ctx.author, 10000)
+        
+        mysql.update_balance(ctx.author, -10000)
+
+        role = discord.utils.get(ctx.guild.roles, name="Mommy")
         await ctx.author.add_roles(role)
-        await ctx.send(f"{ctx.author.mention} Congratulations daddy! ;)")
+        await ctx.send(f"{ctx.author.mention} Congratulations... uh, mommy! ;)")
 
 
 async def setup(bot):
