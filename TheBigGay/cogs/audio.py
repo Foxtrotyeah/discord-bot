@@ -20,8 +20,8 @@ async def before_play(ctx: commands.Context):
     return channel
 
 
-async def play(bot: commands.Bot, url: str, name: str, ctx: commands.Context = None, wait: int = 60 * 5): 
-    if ctx:
+async def play(bot: commands.Bot, url: str, name: str, ctx: commands.Context = None, channel: discord.VoiceChannel = None, wait: int = 60 * 5): 
+    if ctx and not channel:
         channel = await before_play(ctx)
 
     is_there = os.path.isfile(f"./tracks/{name}")
@@ -39,7 +39,7 @@ async def play(bot: commands.Bot, url: str, name: str, ctx: commands.Context = N
             ydl.download([url])
 
     voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
-    if voice.is_playing():
+    if voice and voice.is_playing():
         return ctx.send("I'm already playing something. Wait a sec")
 
     await channel.connect()
