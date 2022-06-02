@@ -112,15 +112,17 @@ class Gambling(commands.Cog):
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
-            choice = options.index(str(reaction)) + 1
         except asyncio.TimeoutError:
             return await message1.delete()
+
+        choice = options.index(str(reaction)) + 1
+        await message1.delete()
 
         # Message to actually guess the number with reactions
         embed = discord.Embed(
             title="Odds",
             description=(
-                f"You chose 1 in {choice}. Here we go: three, two, one..."
+                f"You chose 1 in {choice} odds. Here we go: three, two, one..."
                 f"\n \nUser: {ctx.author.mention}"
             ),
             color=discord.Color.green()
@@ -136,7 +138,6 @@ class Gambling(commands.Cog):
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
         except asyncio.TimeoutError:
-            await message1.delete()
             await message2.delete()
             return
 
