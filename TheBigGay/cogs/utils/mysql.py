@@ -108,12 +108,14 @@ def get_wallet(member: discord.Member) -> tuple[int, int]:
 
 
 # Get all economy data
-def get_economy(guild: discord.Guild) -> tuple[tuple, ...]:
+def get_economy(bot: commands.Bot, guild: discord.Guild) -> list[tuple]:
     table = str(guild.id) + "_economy"
 
     _test_connection(lambda: cursor.execute(f"SELECT user_id, balance from {table}"))
 
     result = cursor.fetchall()
+
+    result = [x for x in result if x[0] != str(bot.application_id)]
 
     return result
 
