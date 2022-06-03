@@ -78,7 +78,7 @@ class Economy(commands.Cog):
     @commands.command(brief="Check the current economy standings.",
                       description="Shows each member's current balance in gaybucks.")
     async def economy(self, ctx: commands.Context):
-        economy = mysql.get_economy(ctx.guild)
+        economy = mysql.get_economy(self.bot, ctx.guild)
         sorted_economy = sorted(economy, key=lambda tup: tup[1], reverse=True)
 
         embed = discord.Embed(title="Economy Top 5", color=discord.Color.purple())
