@@ -5,6 +5,8 @@ from datetime import datetime
 import pytz
 import json
 
+from .utils import papago
+
 
 class Miscellaneous(commands.Cog):
     def __init__(self, bot):
@@ -109,6 +111,13 @@ class Miscellaneous(commands.Cog):
         await ctx.send(f"{ctx.author.mention} Thank you for your contribution to The Big Gay agenda.")
 
         await me.send(f'New request from {user.mention}: "{content}"')
+
+    @commands.command(brief="Translate usigng Papago!", 
+                      description="Get text translated using Naver Papago. Most common languages supported.")
+    async def translate(self, ctx: commands.Context, *, text: str):
+        translation, language = papago.translate(text)
+
+        await ctx.send(f'Translated from **{language}**: "{translation}"')
 
 
 async def setup(bot):

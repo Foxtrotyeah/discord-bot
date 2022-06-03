@@ -34,9 +34,9 @@ intents = discord.Intents(
 )
 
 extensions = (
-    'audio',
-    'economy',
     'gambling',
+    'economy',
+    'audio',
     'misc',
     'polls',
     'roles',
@@ -82,11 +82,6 @@ class GayBot(commands.AutoShardedBot):
         if message.channel.category.name == 'Gambling' and ctx.command.name != 'help':
             if ctx.command.cog_name not in ('Gambling', 'Economy'):
                 return 
-        
-        # 'Daddy' role functionality
-        # roles = [x.name for x in message.author.roles]
-        # if "Daddy" in roles:
-        #     await ctx.send("*yes, daddy~*")
 
         # Spam control
         bucket = self.spam_control.get_bucket(message)
@@ -109,13 +104,13 @@ class GayBot(commands.AutoShardedBot):
         await self.invoke(ctx)
 
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        if isinstance(error, commands.MissingRequiredArgument):
+        if isinstance(error, (commands.MissingRequiredArgument, commands.BadArgument)):
             return await ctx.send_help(ctx.command)
 
         elif isinstance(error, commands.CommandOnCooldown):
             return await ctx.send(error, delete_after=5)
 
-        elif isinstance(error, checks.WrongChannel):                
+        elif isinstance(error, (checks.WrongChannel, checks.MinimumBet)):                
             await ctx.send(f"{ctx.author.mention} {error}", delete_after=10)
 
             await asyncio.sleep(10)
