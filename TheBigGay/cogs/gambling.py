@@ -499,7 +499,7 @@ class Gambling(commands.Cog):
         odds = (remaining - 2) / remaining
         cumulative_odds = odds
 
-        next_score = int(round(bet/odds))
+        next_score = int(round(bet/odds)) - bet
         total = 0
 
         embed = discord.Embed(title="Minesweeper", description=f"There are 2 bombs out there...",
@@ -592,7 +592,7 @@ class Gambling(commands.Cog):
             # Calc next odds and score
             odds = (remaining - 2) / remaining
             cumulative_odds *= odds
-            next_score = int(round((bet/cumulative_odds) - total))
+            next_score = int(round(bet/cumulative_odds)) - bet - total
 
             embed = discord.Embed(title="Minesweeper", description=f"There are 2 bombs out there...",
                                   color=discord.Color.green())
@@ -835,7 +835,7 @@ class Gambling(commands.Cog):
         value = ""
         for player, values in game.items():
             balance = mysql.update_balance(player, values['profit'])
-            if values['profit'] < 0:
+            if values['profit'] > 0:
                 if mysql.check_leaderboard("SmokeOrFire", player, values['profit']):
                     await ctx.send("New Smoke or Fire high score!")
                 mysql.add_to_lottery(self.bot, ctx.guild, bet)
