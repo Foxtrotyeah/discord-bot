@@ -67,8 +67,8 @@ class Economy(commands.Cog):
     @commands.command(brief="Poor? Use this once per day!",
                       description="You must have less than 50 gaybucks in your account to be eligible. "
                                   "You can also only receive a subsidy once per day.")
-    @checks.is_gambling_category()
     @checks.check_subsidy()
+    @checks.is_gambling_category()
     async def subsidy(self, ctx: commands.Context):
         balance = mysql.subsidize(ctx.author)
 
@@ -112,7 +112,7 @@ class Economy(commands.Cog):
 
         await ctx.send(f"{ctx.author.mention}, you now have **{tickets}** lottery tickets.")
 
-    @commands.command()
+    @commands.command(brief="Check the current jackpot.", description="Shows the current lottery jackpot.")
     @checks.is_gambling_category()
     async def lottery(self, ctx: commands.Context):
         result = mysql.get_lottery(self.bot, ctx.guild)
