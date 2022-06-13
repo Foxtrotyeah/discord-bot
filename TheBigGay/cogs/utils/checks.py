@@ -31,11 +31,11 @@ def is_valid_bet(ctx: commands.Context, member: discord.Member, amt: int):
     if amt <= 0:
         raise commands.CommandError("You have to place a nonzero bet.")
 
-    if mysql.get_wallet(member)[0] < amt:
-        raise commands.CommandError(f"Insufficient funds.")
-
     if ctx.channel.name == 'high-roller-hall' and amt < high_roller_minimum:
         raise MinimumBet()
+
+    if mysql.get_wallet(member)[0] < amt:
+        raise commands.CommandError(f"Insufficient funds.")
 
     return True
 
