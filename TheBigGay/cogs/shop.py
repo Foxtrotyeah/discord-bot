@@ -115,15 +115,22 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
         await ctx.author.remove_roles(role)
 
     @commands.command(description="*1000 gb*: Lay a trap for someone upon joining voice chat.")
-    async def trap(self, ctx: commands.Context, member: discord.Member):    
+    async def trap(self, ctx: commands.Context, *, username: str):    
         checks.is_valid_bet(ctx, ctx.author, 1000)
+
+        member = discord.utils.find(lambda m: m.name.lower() == username.lower(), ctx.guild.members)
+        if not member:
+            await ctx.send(f"{ctx.author.mention} I couldn't find user \"{username}\". Deleting...", delete_after=5)
+            await asyncio.sleep(5)
+            await ctx.message.delete()
+            return
 
         mysql.update_balance(ctx.author, -1000)
 
         role = discord.utils.get(ctx.guild.roles, name="Windows")
         await member.add_roles(role)
 
-        await ctx.send(f"{ctx.author.mention} Done! Deleting the evidence now...", delete_after=5)
+        await ctx.send(f"{ctx.author.mention} Trap is set! Deleting the evidence now...", delete_after=5)
         await asyncio.sleep(5)
         await ctx.message.delete()
 
