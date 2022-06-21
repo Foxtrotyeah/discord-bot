@@ -117,7 +117,7 @@ class Economy(commands.Cog):
     async def lottery(self, ctx: commands.Context):
         result = mysql.get_lottery(self.bot, ctx.guild)
 
-        description = f"The current lottery jackpot is **{result} gaybucks**. Buy your tickets before the end of the month!"
+        description = f"The current lottery jackpot is **{result} gaybucks**. Buy your tickets before the drawing at the end of the month!"
         
         embed = discord.Embed(title="Lottery", description=description, color=discord.Color.gold())
         await ctx.send(embed=embed)

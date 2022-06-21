@@ -120,7 +120,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
 
         member = discord.utils.find(lambda m: m.name.lower() == username.lower(), ctx.guild.members)
         if not member:
-            await ctx.send(f"{ctx.author.mention} I couldn't find user \"{username}\". Deleting...", delete_after=5)
+            await ctx.send(f"{ctx.author.mention} I couldn't find user \"{username}\". Try copy-pasting the exact name from their profile (don't @). Deleting...", delete_after=5)
             await asyncio.sleep(5)
             await ctx.message.delete()
             return
