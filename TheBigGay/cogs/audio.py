@@ -19,6 +19,11 @@ async def before_play(ctx: commands.Context):
 
     return channel
 
+    
+def after_play(error: Exception):
+    if error:
+        raise commands.CommandError(error)
+
 
 async def play(bot: commands.Bot, url: str, name: str, ctx: commands.Context = None, channel: discord.VoiceChannel = None, wait: int = 60 * 5): 
     if ctx and not channel:
@@ -38,16 +43,16 @@ async def play(bot: commands.Bot, url: str, name: str, ctx: commands.Context = N
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-    voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+    voice = discord.utils.get(bot.voice_clients, guild=channel.guild)
     if voice and voice.is_playing():
-        return ctx.send("I'm already playing something. Wait a sec")
+        raise commands.CommandError("I'm already playing something. Wait a sec")
 
-    await channel.connect()
+    voice_client = await channel.connect()
 
-    voice.play(discord.FFmpegPCMAudio(source=f"./tracks/{name}"))
+    voice_client.play(discord.FFmpegPCMAudio(source=f"./tracks/{name}"), after=after_play)
 
     await asyncio.sleep(wait)
-    await voice.disconnect()
+    await voice_client.disconnect()
 
 
 class Audio(commands.Cog, command_attrs=dict(hidden=True)):
