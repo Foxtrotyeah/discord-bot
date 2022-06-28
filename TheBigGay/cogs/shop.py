@@ -47,6 +47,9 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
 
             if command.name in ('admin', 'daddy'):
                 description += f"**{command.name}** - {command.description}\n\n"
+
+            elif command.name is 'trap':
+                description += f"**{command.name} <username>** - {command.description}\n\n"
             
             else:
                 description += f"**{command.name} <user>** - {command.description}\n\n"
