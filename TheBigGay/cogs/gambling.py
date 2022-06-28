@@ -371,22 +371,26 @@ class Gambling(commands.Cog):
             await asyncio.sleep(1)
 
         if winner == guess:
-            balance = mysql.update_balance(ctx.author, bet * 2)
+            profit = bet * 2
+            balance = mysql.update_balance(ctx.author, profit)
             description = f"**Horse {winner} Wins!**\n{ctx.author.mention} You have won {bet * 3} gaybucks!"
             color = discord.Color.green()
 
         elif int(third) == guess or (int(second) == guess and tie):
-            balance = mysql.update_balance(ctx.author, bet)
+            profit = bet
+            balance = mysql.update_balance(ctx.author, profit)
             description = f"**Horse {second} Comes in Second (tie)!**\n{ctx.author.mention} You have won {bet * 2} gaybucks!"
             color = discord.Color.green()          
 
         elif int(second) == guess:
-            balance = mysql.update_balance(ctx.author, bet)
+            profit = bet
+            balance = mysql.update_balance(ctx.author, profit)
             description = f"**Horse {second} Comes in Second!**\n{ctx.author.mention} You have won {bet * 2} gaybucks!"
             color = discord.Color.green()
 
         else:
-            balance = mysql.update_balance(ctx.author, -bet)
+            profit = -bet
+            balance = mysql.update_balance(ctx.author, profit)
             mysql.add_to_lottery(self.bot, ctx.guild, bet)
             description = f"**Horse {winner} Wins**\n{ctx.author.mention} You have lost {bet} gaybucks."
             color = discord.Color.red()
@@ -395,7 +399,7 @@ class Gambling(commands.Cog):
         embed2.add_field(name="Balance", value=f"You now have {balance} gaybucks", inline=False)
         await ctx.send(embed=embed2)
 
-        if mysql.check_leaderboard("Horse", ctx.author, bet * 2):
+        if profit > 0 and mysql.check_leaderboard("Horse", ctx.author, bet * 2):
                 await ctx.send("New Horse high score!")
 
     @commands.command(brief="(1 Player) Cash out before the crash.",
