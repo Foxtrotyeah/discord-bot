@@ -732,9 +732,6 @@ class Gambling(commands.Cog):
         i = 1
         new_round = True
         while i < 5:
-            if not players:
-                break
-
             current_player = players[0]
             game[current_player]['round'] += 1
 
@@ -775,6 +772,10 @@ class Gambling(commands.Cog):
                 game[current_player]['inactive'] = True
 
                 players.remove(current_player)
+                if not players:
+                    # No players left, end the game
+                    break
+
                 if game[players[0]]['round'] != i:
                     i += 1
                     new_round = True
