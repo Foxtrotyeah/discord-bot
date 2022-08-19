@@ -56,8 +56,7 @@ class Audio(commands.Cog, command_attrs=dict(hidden=True)):
     @commands.command(brief="Show soudbyte commands", description="Show available soudbyte commands", hidden=False)
     async def audio(self, ctx: commands.Context):
         embed = discord.Embed(
-            title="Audio Commands", 
-            description="All soundbytes cost 20 gaybucks to use.",
+            title="Audio Commands",
             color=discord.Color.blue()
         )
 
