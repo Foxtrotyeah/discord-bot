@@ -4,15 +4,9 @@ import os
 import youtube_dl
 import asyncio
 
-from .utils import checks
-from .utils import mysql
-
 
 async def before_play(ctx: commands.Context):
-    checks.is_valid_bet(ctx, ctx.author, 20)
-    mysql.update_balance(ctx.author, 20)
-
-    if ctx.author.voice.channel:
+    if ctx.author.voice:
         channel = ctx.author.voice.channel
     else:
         channel = ctx.guild.voice_channels[0]
