@@ -18,7 +18,6 @@ config = {
 timezone = pytz.timezone("US/Pacific")
 
 db = pymysql.connect(**config)
-cursor = db.cursor()
 
 
 def _test_connection(function: callable):
@@ -31,6 +30,7 @@ def _test_connection(function: callable):
 
 
 def _execute(sql: str, commit: bool = False) -> tuple[tuple, ...]:
+    cursor = db.cursor()
     _test_connection(lambda: cursor.execute(sql))
 
     result = cursor.fetchall()
@@ -38,6 +38,7 @@ def _execute(sql: str, commit: bool = False) -> tuple[tuple, ...]:
     if commit:
         db.commit()
 
+    cursor.close()
     return result
 
 
@@ -79,6 +80,7 @@ def initialize_guild(guild_id: int):
 
 
 def _check_status(table: str, member_id: int):
+    cursor = db.cursor()
     _test_connection(lambda: cursor.execute(f"SELECT EXISTS(SELECT * from {table} WHERE user_id={member_id})"))
     
     # If user isn't in DB, add a row for them.
@@ -89,14 +91,18 @@ def _check_status(table: str, member_id: int):
         )
         db.commit()
 
+    cursor.close()
+
 
 def _get_user_data(member_id: int, guild_id: int) -> tuple:
+    cursor = db.cursor()
     table = str(guild_id) + "_economy"
 
     _check_status(table, member_id)
 
     cursor.execute(f"SELECT * from {table} WHERE user_id={member_id}")
     result = cursor.fetchone()
+    cursor.close()
 
     return result
 
@@ -109,11 +115,13 @@ def get_wallet(member: discord.Member) -> tuple[int, int]:
 
 # Get all economy data
 def get_economy(bot: commands.Bot, guild: discord.Guild) -> list[tuple]:
+    cursor = db.cursor()
     table = str(guild.id) + "_economy"
 
     _test_connection(lambda: cursor.execute(f"SELECT user_id, balance from {table}"))
 
     result = cursor.fetchall()
+    cursor.close()
 
     result = [x for x in result if x[0] != str(bot.application_id)]
 
@@ -121,7 +129,8 @@ def get_economy(bot: commands.Bot, guild: discord.Guild) -> list[tuple]:
 
 
 # Updates a user's balance
-def update_balance(member: discord.Member, amt: int) -> int:        
+def update_balance(member: discord.Member, amt: int) -> int:  
+    cursor = db.cursor()      
     table = str(member.guild.id) + "_economy"
 
     result = _get_user_data(member.id, member.guild.id)
@@ -134,10 +143,12 @@ def update_balance(member: discord.Member, amt: int) -> int:
     else:
         new_bal = result[1]
 
+    cursor = db.cursor()
     return new_bal
 
 
 def subsidize(member: discord.Member) -> int:
+    cursor = db.cursor()
     table = str(member.guild.id) + "_economy"
 
     result = _get_user_data(member.id, member.guild.id)
@@ -150,11 +161,13 @@ def subsidize(member: discord.Member) -> int:
         f"WHERE user_id={member.id}", (datetime.now(timezone).date(),)
     )
     db.commit()
+    cursor.close()
 
     return new_bal
 
 
 def add_to_lottery(bot: commands.Bot, guild: discord.Guild, amt: int):
+    cursor = db.cursor()
     table = str(guild.id) + "_economy"
 
     result = _get_user_data(bot.application_id, guild.id)
@@ -163,9 +176,11 @@ def add_to_lottery(bot: commands.Bot, guild: discord.Guild, amt: int):
 
     cursor.execute(f"UPDATE {table} SET balance={new_bal} WHERE user_id={bot.application_id}")
     db.commit()
+    cursor.close()
 
 
 def buy_ticket(bot: commands.Bot, member: discord.Member, amt: int) -> int:
+    cursor = db.cursor()
     table = str(member.guild.id) + "_economy"
 
     ticket_price = 50
@@ -181,11 +196,13 @@ def buy_ticket(bot: commands.Bot, member: discord.Member, amt: int) -> int:
     cursor.execute(f"UPDATE {table} SET balance={user_bal}, tickets={total} WHERE user_id={member.id}")
     cursor.execute(f"UPDATE {table} SET balance={bot_bal} WHERE user_id={bot.application_id}")
     db.commit()
+    cursor.close()
 
     return total
 
 
 def choose_lottery_winner(bot: commands.Bot, guild: discord.Guild) -> tuple[discord.Member, int]:
+    cursor = db.cursor()
     table = str(guild.id) + "_economy"
 
     _test_connection(lambda: cursor.execute(f"SELECT user_id, tickets from {table}"))
@@ -206,6 +223,7 @@ def choose_lottery_winner(bot: commands.Bot, guild: discord.Guild) -> tuple[disc
 
     cursor.execute(f"UPDATE {table} SET balance={new_bal} WHERE user_id={winner_id}")
     db.commit()
+    cursor.close()
 
     _reset_lottery(bot, guild)
 
@@ -219,22 +237,29 @@ def get_lottery(bot: commands.Bot, guild: discord.Guild) -> int:
 
 
 def _reset_lottery(bot: commands.Bot, guild: discord.Guild):
+    cursor = db.cursor()
     table = str(guild.id) + "_economy"
 
     cursor.execute(f"UPDATE {table} SET tickets=0")
     cursor.execute(f"UPDATE {table} SET balance=0 WHERE user_id={bot.application_id}")
     db.commit()
+    cursor.close()
 
 
 def get_leaderboard(guild: discord.Guild) -> tuple[tuple, ...]:
+    cursor = db.cursor()
     table = str(guild.id) + "_leaderboard"
 
     _test_connection(lambda: cursor.execute(f"SELECT game, user_id, score, date from {table}"))
 
-    return cursor.fetchall()
+    result = cursor.fetchall()
+    cursor.close()
+
+    return result
 
 
 def check_leaderboard(game: str, member: discord.Member, score: int) -> bool:
+    cursor = db.cursor()
     table = str(member.guild.id) + "_leaderboard"
 
     _test_connection(lambda: cursor.execute(f"SELECT EXISTS(SELECT * from {table} WHERE game='{game}')"))
@@ -250,6 +275,7 @@ def check_leaderboard(game: str, member: discord.Member, score: int) -> bool:
                 (datetime.now(timezone).date(),)
             )
             db.commit()
+            cursor = db.cursor()
             return True
     else:
         # new game high score
@@ -259,6 +285,8 @@ def check_leaderboard(game: str, member: discord.Member, score: int) -> bool:
             (datetime.now(timezone).date(),)
         )
         db.commit()
+        cursor = db.cursor()
         return True
 
+    cursor.close()
     return False
