@@ -96,13 +96,17 @@ class Audio(commands.Cog, command_attrs=dict(hidden=True)):
     async def bust(self, ctx: commands.Context):
         await play(self.bot, url="https://youtu.be/jzge_j-_PME", name="bust.mp3", ctx=ctx, wait=5)
 
+    @commands.command(brief="Soudbyte", description="Double-cheeked up.")
+    async def cheeked(self, ctx: commands.Context):
+        await play(self.bot, url="https://youtu.be/xDvC_W4ANjQ", name="cheeked.mp3", ctx=ctx, wait=9)
+
     @commands.command(brief="Soudbyte", description="You just have to say that you're fine.")
     async def fine(self, ctx: commands.Context):
         await play(self.bot, url="https://youtu.be/77sS5IuR0Gs", name="fine.mp3", ctx=ctx, wait=7)
 
     @commands.command(brief="Soudbyte", description="Plays the 'get your shit together' scene from Rick and Morty.")
     async def morty(self, ctx: commands.Context):
-        await play(self.bot, url="https://youtu.be/UYKKQn3WXh0", name="morty.mp3", ctx=ctx, wait=21)
+        await play(self.bot, url="https://youtu.be/xIAfCupuZ3w", name="morty.mp3", ctx=ctx, wait=20)
 
     @commands.command(brief="Soudbyte", description="Plays audio from the 'It's Wednesday my dudes' scream.")
     async def nut(self, ctx: commands.Context):
