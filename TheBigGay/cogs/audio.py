@@ -116,6 +116,10 @@ class Audio(commands.Cog, command_attrs=dict(hidden=True)):
     async def oof(self, ctx: commands.Context):
         await play(self.bot, url="https://youtu.be/3w-2gUSus34", name="oof.mp3", ctx=ctx, wait=3)
 
+    @commands.command(brief="Soudbyte", description="Who else but Ryan?")
+    async def ryan(self, ctx: commands.Context):
+        await play(self.bot, url="https://youtu.be/ShlFeZP_Zqc", name="ryan.mp3", ctx=ctx, wait=9)
+        
     @commands.command(brief="Soudbyte", description="Plays TikTok sheesh sound.")
     async def sheesh(self, ctx: commands.Context):
         await play(self.bot, url="https://youtu.be/hRj1VyUsVjw", name="sheesh.mp3", ctx=ctx, wait=13)
