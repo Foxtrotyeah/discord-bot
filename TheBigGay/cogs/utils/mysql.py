@@ -210,10 +210,14 @@ def choose_lottery_winner(bot: commands.Bot, guild: discord.Guild) -> tuple[disc
     result = cursor.fetchall()
 
     ticket_holders = [member for member in result if member[1] > 0]
-    tickets = []
-    for holder in ticket_holders:
-        for ticket in range(holder[1]):
-            tickets.append(holder[0])
+    if ticket_holders:
+        tickets = []
+        for holder in ticket_holders:
+            for ticket in range(holder[1]):
+                tickets.append(holder[0])
+    # If no ticket holders, a random person gets the pot.
+    else:
+        tickets = [member[0] for member in result if member[0] != str(bot.application_id)]
 
     winner_id = int(random.choice(tickets))
 
