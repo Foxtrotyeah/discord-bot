@@ -26,12 +26,10 @@ class Economy(commands.Cog):
         events = await guild.fetch_scheduled_events()
         drawing_event = [event for event in events if event.name == "Lottery Drawing"]
         if not drawing_event:
-            await self.create_lottery_event(guild)
+            drawing_event = [await self.create_lottery_event(guild)]
 
         # Lottery is held on the last day of every month. Heroku reloads daily, so this will be checked daily.
-        now = datetime.now(mysql.timezone)
-        tomorrows_month = (now + timedelta(days=1)).month
-        if now.month != tomorrows_month:
+        if drawing_event[0].start_time.date() == datetime.now().date():
             channels = [item[1] for item in guild.by_category() if item[0].name == "Gambling"][0]
             main_hall = [channel for channel in channels if channel.name == "main-hall"][0]
 
@@ -42,9 +40,10 @@ class Economy(commands.Cog):
             message = await main_hall.send(embed=embed)
             await message.pin()
 
+            await drawing_event[0].delete()
             await self.create_lottery_event(guild, next_month=True)
 
-    async def create_lottery_event(self, guild: discord.Guild, next_month: bool = False):
+    async def create_lottery_event(self, guild: discord.Guild, next_month: bool = False) -> discord.ScheduledEvent:
         if next_month:
             now = datetime.now(mysql.timezone) + timedelta(days=1)
         else:
@@ -57,7 +56,7 @@ class Economy(commands.Cog):
             "A random lottery ticket will be pulled to choose the winner of the entire jackpot! "
             "Use .ticket to purchase lottery tickets, and .lottery to see the current jackpot total."
         )
-        await guild.create_scheduled_event(name="Lottery Drawing", description=description, start_time=start_time, end_time=end_time, entity_type=discord.EntityType.external, location="main-hall")
+        return await guild.create_scheduled_event(name="Lottery Drawing", description=description, start_time=start_time, end_time=end_time, entity_type=discord.EntityType.external, location="main-hall")
 
     @commands.command(brief="Get your current balance.", description="Retrieve your current balance in gaybucks.")
     async def wallet(self, ctx: commands.Context):
