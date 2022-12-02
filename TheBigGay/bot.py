@@ -25,6 +25,7 @@ help_command = commands.DefaultHelpCommand(no_category="Default Commands", verif
 intents = discord.Intents(
     guilds=True,
     members=True,
+    presences=True,
     bans=True,
     emojis=True,
     voice_states=True,
