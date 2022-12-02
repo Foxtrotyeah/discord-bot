@@ -35,13 +35,13 @@ class Miscellaneous(commands.Cog):
         if member.status == discord.Status.offline:
             return await ctx.send(f"Damn, you're trying to roast someone behind their back! {member.mention} isn't even online.")
 
-        with open("assets/text.json", encoding="utf8", errors="ignore") as file:
+        with open("./assets/text.json", encoding="utf8", errors="ignore") as file:
             selected = random.choice(json.load(file)["roasts"]).format(member.mention)
         await ctx.send(selected)
 
     @commands.command(brief="Pastes a hot emojipasta.", description="Pastes only the greatest from r/emojipastas")
     async def emojipasta(self, ctx: commands.Context):
-        with open("assets/text.json", encoding="utf8", errors="ignore") as file:
+        with open("./assets/text.json", encoding="utf8", errors="ignore") as file:
             selected = random.choice(json.load(file)["emojipastas"])
         await ctx.send(selected)
 
