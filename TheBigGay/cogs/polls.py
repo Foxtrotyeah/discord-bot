@@ -2,13 +2,15 @@ import discord
 from discord.ext import commands
 import asyncio
 
+from typing import List
+
 
 class Poll:
     reactions = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
     voting = ["👍", "👎"]
     current_poll = []
 
-    def __init__(self, ctx: commands.Context, title: str, description: str, inputs: list[str] = None, yes_no: bool = False, bot=None):
+    def __init__(self, ctx: commands.Context, title: str, description: str, inputs: List[str] = None, yes_no: bool = False, bot=None):
         self.bot = bot
         self.ctx = ctx
         self.title = title
