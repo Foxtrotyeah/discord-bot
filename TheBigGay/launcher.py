@@ -1,7 +1,7 @@
 from bot import GayBot
 
 
-# The Big Gay version 2.1.1
+# The Big Gay version 2.2.0
     
 
 if __name__ == '__main__':
