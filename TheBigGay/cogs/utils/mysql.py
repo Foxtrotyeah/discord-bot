@@ -6,6 +6,8 @@ from datetime import datetime
 import pytz
 import random
 
+from typing import List, Tuple
+
 
 config = {
     "host": os.environ['MYSQL_HOST'],
@@ -28,8 +30,7 @@ def _test_connection(function: callable):
         except pymysql.OperationalError:
             db.ping(reconnect=True)
 
-
-def _execute(sql: str, commit: bool = False) -> tuple[tuple, ...]:
+def _execute(sql: str, commit: bool = False) -> Tuple[Tuple, ...]:
     cursor = db.cursor()
     _test_connection(lambda: cursor.execute(sql))
 
@@ -94,7 +95,7 @@ def _check_status(table: str, member_id: int):
     cursor.close()
 
 
-def _get_user_data(member_id: int, guild_id: int) -> tuple:
+def _get_user_data(member_id: int, guild_id: int) -> Tuple:
     cursor = db.cursor()
     table = str(guild_id) + "_economy"
 
@@ -107,14 +108,14 @@ def _get_user_data(member_id: int, guild_id: int) -> tuple:
     return result
 
 
-def get_wallet(member: discord.Member) -> tuple[int, int]:
+def get_wallet(member: discord.Member) -> Tuple[int, int]:
     result = _get_user_data(member.id, member.guild.id)
 
     return (result[1], result[3])
 
 
 # Get all economy data
-def get_economy(bot: commands.Bot, guild: discord.Guild) -> list[tuple]:
+def get_economy(bot: commands.Bot, guild: discord.Guild) -> List[tuple]:
     cursor = db.cursor()
     table = str(guild.id) + "_economy"
 
@@ -201,7 +202,7 @@ def buy_ticket(bot: commands.Bot, member: discord.Member, amt: int) -> int:
     return total
 
 
-def choose_lottery_winner(bot: commands.Bot, guild: discord.Guild) -> tuple[discord.Member, int]:
+def choose_lottery_winner(bot: commands.Bot, guild: discord.Guild) -> Tuple[discord.Member, int]:
     cursor = db.cursor()
     table = str(guild.id) + "_economy"
 
@@ -250,7 +251,7 @@ def _reset_lottery(bot: commands.Bot, guild: discord.Guild):
     cursor.close()
 
 
-def get_leaderboard(guild: discord.Guild) -> tuple[tuple, ...]:
+def get_leaderboard(guild: discord.Guild) -> Tuple[Tuple, ...]:
     cursor = db.cursor()
     table = str(guild.id) + "_leaderboard"
 
