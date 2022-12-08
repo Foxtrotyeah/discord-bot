@@ -7,6 +7,8 @@ from discord.ext import commands
 from .utils import mysql
 from .utils import checks
 
+from typing import Tuple
+
 
 class Gambling(commands.Cog):
     def __init__(self, bot):
@@ -712,7 +714,7 @@ class Gambling(commands.Cog):
 
             return description
 
-        def generate_card() -> tuple[str, str]:
+        def generate_card() -> Tuple[str, str]:
             nonlocal used
 
             suit_num = random.randint(0, 3)
