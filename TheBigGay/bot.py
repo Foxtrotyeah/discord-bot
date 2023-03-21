@@ -37,7 +37,6 @@ intents = discord.Intents(
 extensions = (
     'gambling',
     'economy',
-    'audio',
     'misc',
     'polls',
     'roles',
