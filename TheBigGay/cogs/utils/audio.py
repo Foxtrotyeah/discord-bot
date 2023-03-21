@@ -5,7 +5,7 @@ import youtube_dl
 import asyncio
 
 
-async def before_play(ctx: commands.Context):
+async def _before_play(ctx: commands.Context) -> discord.VoiceChannel:
     if ctx.author.voice:
         channel = ctx.author.voice.channel
     else:
@@ -14,14 +14,14 @@ async def before_play(ctx: commands.Context):
     return channel
 
     
-def after_play(error: Exception):
+def _after_play(error: Exception):
     if error:
         raise commands.CommandError(error)
 
 
 async def play(bot: commands.Bot, url: str, name: str, ctx: commands.Context = None, channel: discord.VoiceChannel = None, wait: int = 60 * 5): 
     if ctx and not channel:
-        channel = await before_play(ctx)
+        channel = await _before_play(ctx)
 
     if not os.path.isfile(f"./tracks/{name}"):
         ydl_opts = {
@@ -42,7 +42,7 @@ async def play(bot: commands.Bot, url: str, name: str, ctx: commands.Context = N
 
     voice_client = await channel.connect()
 
-    voice_client.play(discord.FFmpegPCMAudio(source=f"./tracks/{name}"), after=after_play)
+    voice_client.play(discord.FFmpegPCMAudio(source=f"./tracks/{name}"), after=_after_play)
 
     await asyncio.sleep(wait)
     await voice_client.disconnect()
