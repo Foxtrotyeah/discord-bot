@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 import asyncio
 
+from .utils.audio import play
+
 from typing import List
 
 
@@ -152,16 +154,13 @@ class Polls(commands.Cog):
             category = await ctx.guild.create_category("The Shadow Realm")
             s_channel = await ctx.guild.create_voice_channel("Hell", category=category)
 
-            # The voice cog needs to be imported to get the 'play' command
-            audio = self.bot.get_cog("Audio")
-
-            await audio.play(ctx, url="https://youtu.be/ts7rkLrAios", name="shadow.mp3",
+            await play(ctx, url="https://youtu.be/ts7rkLrAios", name="shadow.mp3",
                              channel=member.guild.voice_channels[0], wait=3)
 
             try:
                 await member.move_to(s_channel)
 
-                await audio.play(ctx, url="https://youtu.be/AVz_lLnp6wI", name="hell.mp3",
+                await play(ctx, url="https://youtu.be/AVz_lLnp6wI", name="hell.mp3",
                                  channel=s_channel, wait=60)
 
             except discord.errors.HTTPException:

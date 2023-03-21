@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 
-from .audio import play
+from .utils.audio import play
 
 
 # creates the 'banished' role
