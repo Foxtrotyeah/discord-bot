@@ -1,7 +1,7 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from datetime import datetime, timedelta
-import calendar
+from dateutil.relativedelta import relativedelta
 
 from .utils import mysql
 from .utils import checks
@@ -13,43 +13,40 @@ class Economy(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        guilds = self.bot.guilds
-
-        for guild in guilds:
+        for guild in self.bot.guilds:
             # Check for database tables
             mysql.initialize_guild(guild.id)
 
-            await self.check_lottery(guild)
+        self.check_lottery.start()
 
-    async def check_lottery(self, guild: discord.Guild):
-        # Check for lottery events
-        events = await guild.fetch_scheduled_events()
-        drawing_event = [event for event in events if event.name == "Lottery Drawing"]
-        if not drawing_event:
-            drawing_event = [await self.create_lottery_event(guild)]
+    @tasks.loop(hours=24)
+    async def check_lottery(self):
+        for guild in self.bot.guilds:
+            # Check for lottery events
+            events = await guild.fetch_scheduled_events()
+            drawing_event = [event for event in events if event.name == "Lottery Drawing"]
+            if not drawing_event:
+                drawing_event = [await self.create_lottery_event(guild)]
 
-        # Lottery is held on the last day of every month. Heroku reloads daily, so this will be checked daily.
-        if drawing_event[0].start_time.date() == datetime.now().date():
-            channels = [item[1] for item in guild.by_category() if item[0].name == "Gambling"][0]
-            main_hall = [channel for channel in channels if channel.name == "main-hall"][0]
+            # Lottery is held on the last day of every month. Heroku reloads daily, so this will be checked daily.
+            if drawing_event[0].start_time.date() == datetime.now().date():
+                channels = [item[1] for item in guild.by_category() if item[0].name == "Gambling"][0]
+                main_hall = [channel for channel in channels if channel.name == "main-hall"][0]
 
-            winner, balance = mysql.choose_lottery_winner(self.bot, guild)
+                winner, balance = mysql.choose_lottery_winner(self.bot, guild)
 
-            description = f"CONGRATS, {winner.mention}, you're rich!! Your balance is now **{balance} gaybucks**"
-            embed = discord.Embed(title="Lottery Results", description=description, color=discord.Color.gold())
-            message = await main_hall.send(embed=embed)
-            await message.pin()
+                description = f"CONGRATS, {winner.mention}, you're rich!! Your balance is now **{balance} gaybucks**"
+                embed = discord.Embed(title="Lottery Results", description=description, color=discord.Color.gold())
+                message = await main_hall.send(embed=embed)
+                await message.pin()
 
-            await drawing_event[0].delete()
-            await self.create_lottery_event(guild, next_month=True)
+                await drawing_event[0].delete()
+                await self.create_lottery_event(guild)
 
-    async def create_lottery_event(self, guild: discord.Guild, next_month: bool = False) -> discord.ScheduledEvent:
-        if next_month:
-            now = datetime.now(mysql.timezone) + timedelta(days=1)
-        else:
-            now = datetime.now(mysql.timezone)
-        first_weekday, total_days = calendar.monthrange(now.year, now.month)
-        start_time = now + timedelta(days=total_days-now.day)
+    async def create_lottery_event(self, guild: discord.Guilde) -> discord.ScheduledEvent:
+        # Create the date for the first of next month at 8:00p
+        now = datetime.now(mysql.timezone)
+        start_time = datetime(now.year, now.month, 1, 20) + relativedelta(months=1)
         end_time = start_time + timedelta(minutes=15)
 
         description = (
