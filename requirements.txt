@@ -1,5 +1,5 @@
 youtube_dl
-git+https://github.com/Rapptz/discord.py
+discord
 ffmpeg
 pynacl
 pymysql
