@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
 import requests
 import asyncio
@@ -122,6 +123,8 @@ class GayBot(commands.AutoShardedBot):
 
 
     async def on_ready(self):
+        await self.tree.sync()
+        
         game = discord.Game("with a DILF | .help")
         await self.change_presence(status=discord.Status.online, activity=game)
 
