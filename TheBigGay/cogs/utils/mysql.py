@@ -17,7 +17,8 @@ config = {
     "connect_timeout": 86400
 }
 
-timezone = pytz.timezone("US/Pacific")
+# Using any other timzeone messes with the guild.create_scheduled_event fucntion.
+timezone = pytz.timezone("US/Mountain")
 
 db = pymysql.connect(**config)
 
