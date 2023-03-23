@@ -27,11 +27,11 @@ class IneligibleForSubsidy(commands.CheckFailure):
         )
 
 
-def is_valid_bet(ctx: commands.Context, member: discord.Member, amt: int):
+def is_valid_bet(channel: discord.TextChannel, member: discord.Member, amt: int):
     if amt <= 0:
         raise commands.CommandError("You have to place a nonzero bet.")
 
-    if ctx.channel.name == 'high-roller-hall' and amt < high_roller_minimum:
+    if channel.name == 'high-roller-hall' and amt < high_roller_minimum:
         raise MinimumBet()
 
     if mysql.get_wallet(member)[0] < amt:
