@@ -1,5 +1,7 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
+from discord.ui import Button, View, Modal
 import random
 from datetime import datetime
 import pytz
@@ -12,47 +14,47 @@ class Miscellaneous(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(brief="Clears messages.", description="Clears the number of messages specified.", hidden=True)
-    @commands.has_permissions(manage_messages=True)
-    async def purge(self, ctx: commands.Context, amount: int = 5):
-        deleted = await ctx.channel.purge(limit=amount)
-        await ctx.channel.send("Deleted {} message(s)".format(len(deleted)))
+    @app_commands.command(description="Clears messages")
+    @app_commands.default_permissions(manage_messages=True)
+    @app_commands.describe(amount="the number of messages to delete")
+    async def purge(self, interaction: discord.Interaction, amount: int = 5):
+        deleted = await interaction.channel.purge(limit=amount)
+        await interaction.channel.send("Deleted {} message(s)".format(len(deleted)))
 
-    @commands.command(brief="The bot's current latency.",
-                      description="Gives the latency between the bot and server in ms.",
-                      hidden=True)
-    async def ping(self, ctx: commands.Context):
-        await ctx.send(f"Pong! My latency right now is {round(self.bot.latency * 1000)}ms")
+    @app_commands.command(description="Gives the latency between the bot and server in ms")
+    async def ping(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"Pong! My latency right now is {round(self.bot.latency * 1000)}ms")
 
-    @commands.command(brief="Says hi, but gayer", description="Says hi, but gayer.", hidden=True)
-    async def hello(self, ctx: commands.Context):
-        await ctx.send(f"{ctx.author.mention} Heyyy ;)")
+    @app_commands.command(description="Says hi, but gayer")
+    async def hello(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"{interaction.user.mention} Heyyy ;)")
 
-    @commands.command(brief="Roasts a user.", description="Roast a user with a preset insult from The Big Gay")
-    async def roast(self, ctx: commands.Context, member: discord.Member):
+    @app_commands.command(description="Roast a user with a preset insult from The Big Gay")
+    @app_commands.describe(member="the member to roast")
+    async def roast(self, interaction: discord.Interaction, member: discord.Member):
         if member.bot:
-            return await ctx.send(f"{ctx.author.mention} No one roasts me, twat.")
+            return await interaction.response.send_message(f"{interaction.user.mention} No one roasts me, twat.")
         if member.status == discord.Status.offline:
-            return await ctx.send(f"Damn, you're trying to roast someone behind their back! {member.mention} isn't even online.")
+            return await interaction.response.send_message(f"Damn, you're trying to roast someone behind their back! {member.mention} isn't even online.")
 
         with open("./assets/text.json", encoding="utf8", errors="ignore") as file:
             selected = random.choice(json.load(file)["roasts"]).format(member.mention)
-        await ctx.send(selected)
+        await interaction.response.send_message(selected)
 
-    @commands.command(brief="Pastes a hot emojipasta.", description="Pastes only the greatest from r/emojipastas")
-    async def emojipasta(self, ctx: commands.Context):
+    @app_commands.command(description="Pastes a hot emojipasta.")
+    async def emojipasta(self, interaction: discord.Interaction):
         with open("./assets/text.json", encoding="utf8", errors="ignore") as file:
             selected = random.choice(json.load(file)["emojipastas"])
-        await ctx.send(selected)
+        await interaction.response.send_message(selected)
 
-    @commands.command(brief="Vibecheck a user or the whole server.",
-                      description="If no user is specified, the whole server will be vibechecked.")
-    async def vibecheck(self, ctx: commands.Context, member: discord.Member = None):
+    @app_commands.command(description="Vibecheck a user or the whole server.")
+    @app_commands.describe(member="the member to vibecheck")
+    async def vibecheck(self, interaction: discord.Interaction, member: discord.Member = None):
         if member:
             if member.bot:
-                return await ctx.send("Bitch, I'm always fabulous.")
+                return await interaction.response.send_message("Bitch, I'm always fabulous.")
             if member.status == discord.Status.offline:
-                return await ctx.send(f"I can't read minds if they aren't on online. "
+                return await interaction.response.send_message(f"I can't read minds if they aren't on online. "
                                       f"I'm sure {member.mention} is doing fine!")
             vibe = random.randint(0, 100)
             message = "{} Vibe levels at {}%.".format(member.mention, vibe)
@@ -70,9 +72,9 @@ class Miscellaneous(commands.Cog):
             elif 85 <= vibe:
                 message += " BIG CHILLING right now 😎"
 
-            await ctx.send(message)
+            await interaction.response.send_message(message)
         else:
-            user_list = [x for x in ctx.guild.members if x.status == discord.Status.online]
+            user_list = [x for x in interaction.guild.members if x.status == discord.Status.online]
             user_list = [x for x in user_list if not x.bot]
             rand_user = random.choice(user_list)
             vibes = [
@@ -80,44 +82,58 @@ class Miscellaneous(commands.Cog):
                 "{} is on one right now 🔥".format(rand_user.mention)
             ]
             vibe = random.choice(vibes)
-            await ctx.send(vibe)
+            await interaction.response.send_message(vibe)
 
-    @commands.command(brief="A 50/50 virtual coin toss.", description="Completely random 50/50 decision")
-    async def coinflip(self, ctx: commands.Context):
+    @app_commands.command(description="A 50/50 virtual coin toss.")
+    async def coinflip(self, interaction: discord.Interaction):
         coin = ["Heads!", "Tails!"]
-        await ctx.send(random.choice(coin))
+        await interaction.response.send_message(random.choice(coin))
 
-    @commands.command(brief="I will make a decision for you.",
-                      description="Can't decide for yourself? Let computers think for you. "
-                                  "Give me a list of options separated by commas.")
+    # TODO use new ui for this
+    @app_commands.command(brief="I will make a decision for you")
+    @app_commands.describe(inputs="each choice separated by a space")
     async def choose(self, ctx: commands.Context, *, inputs: str):
         choices = str(inputs).split(", ")
         return await ctx.send(f"{ctx.author.mention} I choose **{random.choice(choices)}**!")
 
-    @commands.command(hidden=True)
-    async def time(self, ctx: commands.Context):
-        timezone = pytz.timezone("US/Pacific")
-        await ctx.send("PST time: {}".format(datetime.now(timezone)))
+    @app_commands.command(description="The bot's local time")
+    async def time(self, interaction: discord.Interaction):
+        timezone = pytz.timezone("US/Mountain")
+        await interaction.response.send_message("MST time: {}".format(datetime.now(timezone)))
 
-    @commands.command(brief="Send the owner a request or bug report.",
-                      description="Send the owner of The Big Gay a request for a feature idea "
-                                  "or a bug that you may have come across.")
-    async def request(self, ctx: commands.Context, *, content: str):
-        await ctx.message.delete()
+    @app_commands.command(description="Send the owner an anonymous request or bug report.")
+    @app_commands.describe(content="your message to the owner")
+    async def request(self, interaction: discord.Interaction, *, content: str):
+        await interaction.message.delete()
 
-        user = ctx.author
-        me = discord.utils.get(ctx.guild.members, id=403969156510121987)
+        user = interaction.user
+        me = discord.utils.get(interaction.guild.members, id=403969156510121987)
     
-        await ctx.send(f"{ctx.author.mention} Thank you for your contribution to The Big Gay agenda.")
+        await interaction.response.send_message(f"{interaction.user.mention} Thank you for your contribution to The Big Gay agenda.")
 
         await me.send(f'New request from {user.mention}: "{content}"')
 
+    # TODO move this to a context menu, maybe keep as a command...
     @commands.command(brief="Translate usigng Papago!", 
                       description="Get text translated using Naver Papago. Most common languages supported.")
     async def translate(self, ctx: commands.Context, *, text: str):
         translation, language = papago.translate(text)
 
         await ctx.send(f'Translated from **{language}**: "{translation}"')
+
+    @app_commands.command(description="Test function")
+    @app_commands.describe(text="Test text")
+    async def test(self, interaction: discord.Interaction, text: str):
+        button = Button(label="Click me!", style=discord.ButtonStyle.green, emoji="❗")
+        view = View(text)
+        view.add_item(button)
+        await interaction.response.send_message("Test", view=view)
+        pass
+
+    @app_commands.command()
+    async def sync(self, interaction: discord.Interaction):
+        await self.bot.tree.sync()
+        await interaction.response.send_message("Synced", ephemeral=True)
 
 
 async def setup(bot):
