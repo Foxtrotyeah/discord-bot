@@ -2,6 +2,7 @@ import random
 import time
 import asyncio
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from .utils import mysql
@@ -68,27 +69,27 @@ class Gambling(commands.Cog):
 
             await message.delete()
 
+    # TODO take out
     async def cog_check(self, ctx: commands.Context) -> bool:
         return checks.is_gambling_category_pred(ctx)
 
-    @commands.command(brief="Show the leaderboard for gambling games",
-                      description="Check who has won the most money in each of the gambling games.")
-    async def leaderboard(self, ctx: commands.Context):
-        leaderboard = mysql.get_leaderboard(ctx.guild)
+    @app_commands.command(description="Check who has won the most money in each of the gambling games.")
+    async def leaderboard(self, interaction: discord.Interaction):
+        leaderboard = mysql.get_leaderboard(interaction.guild)
 
         embed = discord.Embed(title="Leaderboard", color=discord.Color.purple())
         for row in leaderboard:
             game = row[0]
-            member = ctx.guild.get_member(int(row[1]))
+            member = interaction.guild.get_member(int(row[1]))
             score = row[2]
-            embed.add_field(name=f"{game}", value=f"{member.name}\n*{score} GB*", inline=False)
+            embed.add_field(name=f"{game}", value=f"{member.name}\n*{score}GB*", inline=False)
 
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
-    @commands.command(brief="(1 Player) What are the odds?",
-                      description="What are the odds I give you money? (1 in...?)")
-    async def odds(self, ctx: commands.Context, bet: int):
-        checks.is_valid_bet(ctx, ctx.author, bet)
+    @app_commands.command(description="(1 Player) What are the odds I give you money? (1 in...?)")
+    @app_commands.describe(bet="your bet in gaybucks")
+    async def odds(self, interaction: discord.Interaction, bet: int):
+        checks.is_valid_bet(interaction.channel, interaction.user, bet)
 
         options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
 
@@ -98,11 +99,11 @@ class Gambling(commands.Cog):
             description=(
                 f"What are the odds I give you money? "
                 "(Choose a number between 2 and 10)"
-                f"\n \nUser: {ctx.author.mention}"
+                f"\n \nUser: {interaction.user.mention}"
             ),
             color=discord.Color.green()
         )
-        message1 = await ctx.send(embed=embed)
+        message1 = await interaction.response.send_message(embed=embed)
 
         for option in options:
             if option == "1️⃣":
@@ -110,7 +111,7 @@ class Gambling(commands.Cog):
             await message1.add_reaction(option)
 
         def react_check(reaction: discord.Reaction, user: discord.User):
-            return user.id == ctx.author.id and reaction.message.id == message1.id and str(reaction) in options
+            return user.id == interaction.user.id and reaction.message.id == message1.id and str(reaction) in options
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
@@ -125,17 +126,17 @@ class Gambling(commands.Cog):
             title="Odds",
             description=(
                 f"You chose 1 in {choice} odds. Here we go: three, two, one..."
-                f"\n \nUser: {ctx.author.mention}"
+                f"\n \nUser: {interaction.user.mention}"
             ),
             color=discord.Color.green()
         )                 
-        message2 = await ctx.send(embed=embed)
+        message2 = await interaction.response.send_message(embed=embed)
 
         for i in range(choice):
             await message2.add_reaction(options[i])
 
         def react_check(reaction: discord.Reaction, user: discord.User):
-            return user.id == ctx.author.id and reaction.message.id == message2.id and str(reaction) in options
+            return user.id == interaction.user.id and reaction.message.id == message2.id and str(reaction) in options
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
@@ -148,13 +149,13 @@ class Gambling(commands.Cog):
 
         if result == pick:
             payout = bet * choice
-            balance = mysql.update_balance(ctx.author, payout - bet)
+            balance = mysql.update_balance(interaction.user, payout - bet)
 
             embed = discord.Embed(
                 title="Odds",
                 description=(
                     f"You chose 1 in {choice}. Here we go: three, two, one..."
-                    f"\n \n**{pick}!** Congrats, {ctx.author.mention}! "
+                    f"\n \n**{pick}!** Congrats, {interaction.user.mention}! "
                     f"At **{choice}:1 odds**, your payout is **{payout} gaybucks**."
                 ),
                 color=discord.Color.green()
@@ -162,16 +163,16 @@ class Gambling(commands.Cog):
             embed.add_field(name="Balance", value=f"You now have {balance} gaybucks.",
                             inline=False)
 
-            if mysql.check_leaderboard("Odds", ctx.author, payout):
-                await ctx.send("New Odds high score!")
+            if mysql.check_leaderboard("Odds", interaction.user, payout):
+                await interaction.response.send_message("New Odds high score!")
         else:
-            balance = mysql.update_balance(ctx.author, -bet)
-            mysql.add_to_lottery(self.bot, ctx.guild, bet)
+            balance = mysql.update_balance(interaction.user, -bet)
+            mysql.add_to_lottery(self.bot, interaction.guild, bet)
             embed = discord.Embed(
                 title="Odds",
                 description=(
                     f"You chose 1 in {choice}. Here we go: three, two, one..."
-                    f"\n \n**{pick}!** Sorry,{ctx.author.mention}, better luck next time."
+                    f"\n \n**{pick}!** Sorry,{interaction.user.mention}, better luck next time."
                 ),
                 color=discord.Color.red()
             )
@@ -180,21 +181,21 @@ class Gambling(commands.Cog):
 
         await message2.edit(embed=embed)
 
-    @commands.command(brief="(2 Players) Higher card wins.",
-                      discription="Bet with a friend to see who wins with a higher card.")
-    async def cardcut(self, ctx: commands.Context, member: discord.Member, bet: int):
-        checks.is_valid_bet(ctx, ctx.author, bet)
+    @app_commands.command(description="(2 Players) Bet with a friend to see who wins with a higher card.")
+    @app_commands.describe(member="player 2", bet="your bet in gaybucks")
+    async def cardcut(self, interaction: discord.Interaction, member: discord.Member, bet: int):
+        checks.is_valid_bet(interaction.channel, interaction.user, bet)
 
         options = ["❌", "✅"]
         suits = ["♠️", "♥️", "♣️", "♦️"]
         values = ["2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "🇯", "🇶", "🇰", "🇦"]
 
-        player1 = ctx.author
+        player1 = interaction.user
         player2 = member
         players = [player1, player2]
 
         if player1.id == player2.id:
-            return await ctx.send(f"{ctx.author.mention} You can't just play with yourself in front of everyone!")
+            return await interaction.response.send_message(f"{interaction.user.mention} You can't just play with yourself in front of everyone!")
 
         # Initial prompt to get player 2's consent
         embed = discord.Embed(
@@ -202,18 +203,18 @@ class Gambling(commands.Cog):
             description=(
                 f"{player1.mention} has started a card-cutting bet against "
                 f"{player2.mention}. Do you accept?"
-                f"\n \nUser: {ctx.author.mention}"
+                f"\n \nUser: {interaction.user.mention}"
             ),
             color=discord.Color.green()
         )
-        message = await ctx.send(embed=embed)
+        message = await interaction.response.send_message(embed=embed)
 
         for option in options:
             await message.add_reaction(option)
 
         def react_check(reaction: discord.Reaction, user: discord.User):
             if user.id == player2.id and reaction.message.id == message.id and str(reaction) in options:
-                return checks.is_valid_bet(ctx, user, bet)
+                return checks.is_valid_bet(interaction.channel, user, bet)
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
@@ -225,7 +226,7 @@ class Gambling(commands.Cog):
                 title="Card Cutting",
                 description=(
                     f"{player2.mention} has declined the bet."
-                    f"\n \nUser: {ctx.author.mention}"
+                    f"\n \nUser: {interaction.user.mention}"
                 ),
                 color=discord.Color.red()
             )
@@ -242,7 +243,7 @@ class Gambling(commands.Cog):
             f"card wins!\n\n__**Cards:**__"
         )
         embed = discord.Embed(title="Card Cutting", description=description, color=discord.Color.green())
-        card_cut = await ctx.send(embed=embed)
+        card_cut = await interaction.response.send_message(embed=embed)
         await card_cut.add_reaction("❌")
 
         used = int
@@ -293,7 +294,7 @@ class Gambling(commands.Cog):
 
         winner_balance = mysql.update_balance(winner, pot - bet)
         loser_balance = mysql.update_balance(loser, -bet)
-        mysql.add_to_lottery(self.bot, ctx.guild, bet)
+        mysql.add_to_lottery(self.bot, interaction.guild, bet)
 
         embed = discord.Embed(title="Card Cutting",
                               description=f"Congratulations, {winner.mention}! You've won **{pot} gaybucks**!",
@@ -301,15 +302,15 @@ class Gambling(commands.Cog):
         embed.add_field(
             name=f"Balances",
             value=(
-                f"{winner.mention}: {winner_balance} GB\n"
-                f"{loser.mention}: {loser_balance} GB"
+                f"{winner.mention}: {winner_balance}GB\n"
+                f"{loser.mention}: {loser_balance}GB"
             ),
             inline=False
         )
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
         if mysql.check_leaderboard("Cardcut", winner, pot):
-            await ctx.send("New Cardcut high score!")
+            await interaction.response.send_message("New Cardcut high score!")
 
     @commands.command(brief="(1 Player) Horse race.",
                       discription="Bet with 5x odds on which of the five horses will reach the finish line first.")
@@ -705,7 +706,7 @@ class Gambling(commands.Cog):
             description = ""
             for player, values in game.items():
                 cards = '  '.join(x[0] + x[1] for x in values['cards'])
-                description += f"{player.mention}: {cards} \u200b\u200b **{values['profit']} GB**"
+                description += f"{player.mention}: {cards} \u200b\u200b **{values['profit']}GB**"
 
                 if values['inactive']:
                     description += " (removed for inactivity)"
@@ -847,7 +848,7 @@ class Gambling(commands.Cog):
                     await ctx.send("New Smoke or Fire high score!")
                 mysql.add_to_lottery(self.bot, ctx.guild, bet)
 
-            value += f"{player.mention}: {balance} GB\n"
+            value += f"{player.mention}: {balance}GB\n"
 
         embed = discord.Embed(title="Smoke or Fire", description=description, color=discord.Color.green())
         embed.add_field(name="Balance:", value=value, inline=False)
@@ -962,8 +963,8 @@ class Gambling(commands.Cog):
             embed.add_field(
                 name=f"Balances",
                 value=(
-                    f"{players[1]}: {player2_bal} GB\n"
-                    f"{players[0]}: {player1_bal} GB"
+                    f"{players[1]}: {player2_bal}GB\n"
+                    f"{players[0]}: {player1_bal}GB"
                 ),
                     inline=False
                 )
