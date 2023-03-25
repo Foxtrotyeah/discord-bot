@@ -19,7 +19,7 @@ class Miscellaneous(commands.Cog):
     @app_commands.describe(amount="the number of messages to delete")
     async def purge(self, interaction: discord.Interaction, amount: int = 5):
         deleted = await interaction.channel.purge(limit=amount)
-        await interaction.channel.send("Deleted {} message(s)".format(len(deleted)))
+        await interaction.response.send_message("Deleted {} message(s)".format(len(deleted)))
 
     @app_commands.command(description="Gives the latency between the bot and server in ms")
     async def ping(self, interaction: discord.Interaction):
@@ -34,8 +34,6 @@ class Miscellaneous(commands.Cog):
     async def roast(self, interaction: discord.Interaction, member: discord.Member):
         if member.bot:
             return await interaction.response.send_message(f"{interaction.user.mention} No one roasts me, twat.")
-        if member.status == discord.Status.offline:
-            return await interaction.response.send_message(f"Damn, you're trying to roast someone behind their back! {member.mention} isn't even online.")
 
         with open("./assets/text.json", encoding="utf8", errors="ignore") as file:
             selected = random.choice(json.load(file)["roasts"]).format(member.mention)
@@ -74,8 +72,12 @@ class Miscellaneous(commands.Cog):
 
             await interaction.response.send_message(message)
         else:
-            user_list = [x for x in interaction.guild.members if x.status == discord.Status.online]
+            user_list = [x for x in interaction.guild.members if x.status != discord.Status.offline]
             user_list = [x for x in user_list if not x.bot]
+            
+            if len(user_list) < 1:
+                return await interaction.response.send_message("Apparently nobody's online. Awkward.")
+            
             rand_user = random.choice(user_list)
             vibes = [
                 "{} is salty as hell, watch out 👀".format(rand_user.mention),
@@ -90,11 +92,11 @@ class Miscellaneous(commands.Cog):
         await interaction.response.send_message(random.choice(coin))
 
     # TODO use new ui for this
-    @app_commands.command(brief="I will make a decision for you")
-    @app_commands.describe(inputs="each choice separated by a space")
-    async def choose(self, ctx: commands.Context, *, inputs: str):
+    @app_commands.command(description="I will make a decision for you")
+    @app_commands.describe(inputs="each choice separated by a comma")
+    async def choose(self, interaction: discord.Interaction, *, inputs: str):
         choices = str(inputs).split(", ")
-        return await ctx.send(f"{ctx.author.mention} I choose **{random.choice(choices)}**!")
+        return await interaction.response.send_message(f"{interaction.user.mention} I choose **{random.choice(choices)}**!")
 
     @app_commands.command(description="The bot's local time")
     async def time(self, interaction: discord.Interaction):
@@ -104,33 +106,32 @@ class Miscellaneous(commands.Cog):
     @app_commands.command(description="Send the owner an anonymous request or bug report.")
     @app_commands.describe(content="your message to the owner")
     async def request(self, interaction: discord.Interaction, *, content: str):
-        await interaction.message.delete()
-
         user = interaction.user
         me = discord.utils.get(interaction.guild.members, id=403969156510121987)
     
-        await interaction.response.send_message(f"{interaction.user.mention} Thank you for your contribution to The Big Gay agenda.")
+        await interaction.response.send_message("Thank you for your contribution to The Big Gay agenda.")
 
         await me.send(f'New request from {user.mention}: "{content}"')
 
     # TODO move this to a context menu, maybe keep as a command...
-    @commands.command(brief="Translate usigng Papago!", 
-                      description="Get text translated using Naver Papago. Most common languages supported.")
+    @commands.command(description="Translate using Papago")
     async def translate(self, ctx: commands.Context, *, text: str):
         translation, language = papago.translate(text)
 
         await ctx.send(f'Translated from **{language}**: "{translation}"')
 
     @app_commands.command(description="Test function")
-    @app_commands.describe(text="Test text")
+    @app_commands.describe(text="test text")
+    @app_commands.default_permissions(administrator=True)
     async def test(self, interaction: discord.Interaction, text: str):
         button = Button(label="Click me!", style=discord.ButtonStyle.green, emoji="❗")
-        view = View(text)
+        view = View()
         view.add_item(button)
-        await interaction.response.send_message("Test", view=view)
+        await interaction.response.send_message(text, view=view)
         pass
 
-    @app_commands.command()
+    @app_commands.command(description="Sync command tree")
+    @app_commands.default_permissions(administrator=True)
     async def sync(self, interaction: discord.Interaction):
         await self.bot.tree.sync()
         await interaction.response.send_message("Synced", ephemeral=True)
