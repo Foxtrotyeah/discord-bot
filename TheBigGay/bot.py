@@ -9,6 +9,9 @@ from collections import Counter
 from cogs.utils import checks
 
 
+# The Big Gay version 3.0.0
+
+
 # Bot link
 r = requests.head(url='https://discord.com/api/v1')
 try:
@@ -132,3 +135,14 @@ class GayBot(commands.AutoShardedBot):
 
     def run(self):
         return super().run(os.environ['TOKEN'])
+    
+
+bot = GayBot()
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+    print(error)
+    await interaction.response.send_message("Uh oh... \**grunts*\* something's not right here... \**farts*\*", ephemeral=True)
+
+if __name__ == '__main__':
+    bot.run()
