@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
 from datetime import datetime
 
@@ -18,7 +19,7 @@ class MinimumBet(commands.CheckFailure):
         return f"Bets in the high roller hall must meet the minimum bet: **{high_roller_minimum} gaybucks**."
 
 
-class IneligibleForSubsidy(commands.CheckFailure):
+class IneligibleForSubsidy(app_commands.CheckFailure):
     def __str__(self):
         return (
             "You are not eligible for a subsidy. "
@@ -53,12 +54,12 @@ def is_gambling_category():
 
 # Check eligibility status for a subsidy
 def check_subsidy():
-    def pred(ctx: commands.Context) -> bool:
-        result = mysql._get_user_data(ctx.author.id, ctx.guild.id)
+    def predicate(interaction: discord.Interaction) -> bool:
+        result = mysql._get_user_data(interaction.user.id, interaction.guild.id)
 
         if result[1] < 100 and result[2].date() < datetime.now(mysql.timezone).date():
             return True
         else:
             raise IneligibleForSubsidy()
 
-    return commands.check(pred)
+    return app_commands.check(predicate)
