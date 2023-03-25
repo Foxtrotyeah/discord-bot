@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from discord.ui import Button, View, Modal
+from discord.ui import Modal, Button, View, TextInput
 import random
 from datetime import datetime
 import pytz
@@ -91,9 +91,8 @@ class Miscellaneous(commands.Cog):
         coin = ["Heads!", "Tails!"]
         await interaction.response.send_message(random.choice(coin))
 
-    # TODO use new ui for this
     @app_commands.command(description="I will make a decision for you")
-    @app_commands.describe(inputs="each choice separated by a comma")
+    @app_commands.describe(inputs="separate each choice by a **comma**")
     async def choose(self, interaction: discord.Interaction, *, inputs: str):
         choices = str(inputs).split(", ")
         return await interaction.response.send_message(f"{interaction.user.mention} I choose **{random.choice(choices)}**!")
@@ -108,6 +107,10 @@ class Miscellaneous(commands.Cog):
     async def request(self, interaction: discord.Interaction, *, content: str):
         user = interaction.user
         me = discord.utils.get(interaction.guild.members, id=403969156510121987)
+
+        modal = Modal(title="Request")
+        textinput = TextInput(label="Type your message here", style=discord.TextStyle.long)
+        modal.add_item(textinput)
     
         await interaction.response.send_message("Thank you for your contribution to The Big Gay agenda.")
 
@@ -125,10 +128,10 @@ class Miscellaneous(commands.Cog):
     @app_commands.default_permissions(administrator=True)
     async def test(self, interaction: discord.Interaction, text: str):
         button = Button(label="Click me!", style=discord.ButtonStyle.green, emoji="❗")
-        view = View()
-        view.add_item(button)
-        await interaction.response.send_message(text, view=view)
-        pass
+        textinput = TextInput(label="Type here", style=discord.TextStyle.short)
+        modal = Modal(title="Choose")
+        modal.add_item(textinput)
+        await interaction.response.send_modal(modal)
 
     @app_commands.command(description="Sync command tree")
     @app_commands.default_permissions(administrator=True)
