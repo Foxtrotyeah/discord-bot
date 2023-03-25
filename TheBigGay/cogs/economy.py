@@ -67,10 +67,10 @@ class Economy(commands.Cog):
     @app_commands.command(description="Receive your daily 50GB subsidy (if you're poor)")
     @checks.check_subsidy()
     async def subsidy(self, interaction: discord.Interaction):
-        balance = mysql.subsidize(interaction.user.mention)
+        balance = mysql.subsidize(interaction.user)
 
-        await interaction.response.send_message(f"{interaction.user.mention}, 50 gaybucks have been added to your account, "
-                       f"courtesy of your sugar daddy 😉 (You now have **{balance}GB**)")
+        await interaction.response.send_message(f"50 gaybucks have been added to your account, "
+                       f"courtesy of your sugar daddy 😉 (You now have **{balance}GB**)", ephemeral=True)
 
     @app_commands.command(description="Shows each member's current GB balance")
     async def economy(self, interaction: discord.Interaction):
@@ -89,13 +89,13 @@ class Economy(commands.Cog):
     @app_commands.describe(member="the member to donate to", amount="amount of GB to donate")
     async def donate(self, interaction: discord.Interaction, member: discord.Member, amount: int):
         if member.id == interaction.user.id:
-            return await interaction.response.send_message(f"{interaction.user.mention} Wow, how generous...?")
+            return await interaction.response.send_message("Wow, how generous...?")
 
         checks.is_valid_bet(interaction.channel, interaction.user, amount)
 
         mysql.update_balance(interaction.user, -amount)
         balance = mysql.update_balance(interaction.user, amount)
-        await interaction.response.send_message(f"{interaction.user.mention} has just donated {amount}GB to {member.mention}! They now have {balance}GB.")
+        await interaction.response.send_message(f"Successfully donated {amount}GB to {member.mention}! They now have {balance}GB.")
 
     @app_commands.command(description="Buy lottery tickets for 50GB each")
     @app_commands.describe(amount="amount of lottery tickets to buy")
@@ -105,7 +105,7 @@ class Economy(commands.Cog):
 
         tickets = mysql.buy_ticket(self.bot, interaction.user, amount)
 
-        await interaction.response.send_message(f"{interaction.user.mention}, you now have **{tickets}** lottery tickets.")
+        await interaction.response.send_message(f"You now have **{tickets}** lottery tickets.", ephemeral=True)
 
     @app_commands.command(description="Shows the current lottery jackpot.")
     async def lottery(self, interaction: discord.Interaction):
