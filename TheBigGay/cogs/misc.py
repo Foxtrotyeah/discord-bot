@@ -103,18 +103,21 @@ class Miscellaneous(commands.Cog):
         await interaction.response.send_message("MST time: {}".format(datetime.now(timezone)))
 
     @app_commands.command(description="Send the owner an anonymous request or bug report.")
-    @app_commands.describe(content="your message to the owner")
-    async def request(self, interaction: discord.Interaction, *, content: str):
+    async def request(self, interaction: discord.Interaction):
         user = interaction.user
         me = discord.utils.get(interaction.guild.members, id=403969156510121987)
 
         modal = Modal(title="Request")
         textinput = TextInput(label="Type your message here", style=discord.TextStyle.long)
         modal.add_item(textinput)
-    
-        await interaction.response.send_message("Thank you for your contribution to The Big Gay agenda.")
 
-        await me.send(f'New request from {user.mention}: "{content}"')
+        async def on_submit(interaction: discord.Interaction):
+            await me.send(f'New request from {user.mention}: "{textinput.value}"')
+            await interaction.response.send_message("Thank you for your contribution to The Big Gay agenda.")
+
+        modal.on_submit = on_submit
+    
+        await interaction.response.send_modal(modal)
 
     # TODO move this to a context menu, maybe keep as a command...
     @commands.command(description="Translate using Papago")
