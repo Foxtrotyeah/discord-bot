@@ -1,4 +1,3 @@
-youtube_dl
 discord
 ffmpeg
 pynacl
