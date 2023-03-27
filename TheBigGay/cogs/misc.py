@@ -49,6 +49,8 @@ class Miscellaneous(commands.Cog):
     @app_commands.describe(member="the member to vibecheck")
     async def vibecheck(self, interaction: discord.Interaction, member: discord.Member = None):
         if member:
+            # App commands don't get the same member objects as normal commands...
+            member = interaction.guild.get_member(member.id)
             if member.bot:
                 return await interaction.response.send_message("Bitch, I'm always fabulous.")
             if member.status == discord.Status.offline:
@@ -92,10 +94,10 @@ class Miscellaneous(commands.Cog):
         await interaction.response.send_message(random.choice(coin))
 
     @app_commands.command(description="I will make a decision for you")
-    @app_commands.describe(inputs="separate each choice by a **comma**")
+    @app_commands.describe(inputs="your choices *separated by a comma*")
     async def choose(self, interaction: discord.Interaction, *, inputs: str):
         choices = str(inputs).split(", ")
-        return await interaction.response.send_message(f"{interaction.user.mention} I choose **{random.choice(choices)}**!")
+        return await interaction.response.send_message(f"I choose **{random.choice(choices)}**!")
 
     @app_commands.command(description="The bot's local time")
     async def time(self, interaction: discord.Interaction):
@@ -126,15 +128,12 @@ class Miscellaneous(commands.Cog):
 
         await ctx.send(f'Translated from **{language}**: "{translation}"')
 
-    @app_commands.command(description="Test function")
-    @app_commands.describe(text="test text")
+    @commands.hybrid_command(description="Test function")
     @app_commands.default_permissions(administrator=True)
-    async def test(self, interaction: discord.Interaction, text: str):
-        button = Button(label="Click me!", style=discord.ButtonStyle.green, emoji="❗")
-        textinput = TextInput(label="Type here", style=discord.TextStyle.short)
-        modal = Modal(title="Choose")
-        modal.add_item(textinput)
-        await interaction.response.send_modal(modal)
+    async def test(self, ctx: commands.Context, member: discord.Member):
+        member2 = ctx.guild.get_member(member.id)
+        print(member.status, member2.status, member.raw_status)
+        await ctx.send(f"Their status: {member.status}")
 
     @app_commands.command(description="Sync command tree")
     @app_commands.default_permissions(administrator=True)
