@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
 import asyncio
 
@@ -10,68 +11,71 @@ from typing import List
 class Poll:
     reactions = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
     voting = ["👍", "👎"]
-    current_poll = []
+    active_polls = []
 
-    def __init__(self, ctx: commands.Context, title: str, description: str, inputs: List[str] = None, yes_no: bool = False, bot=None):
-        self.bot = bot
-        self.ctx = ctx
+    def __init__(self, interaction: discord.Interaction, title: str, description: str, inputs: List[str] = None):
+        self.interaction = interaction
         self.title = title
         self.description = description
-        if inputs:
-            self.inputs = inputs
-        elif yes_no:
-            self.yes_no = True
-            self.result = None
 
-        self.message = None
+        self.inputs = inputs
+
+        self.response = None
+        self.embed = None
         self.closed = False
 
-    async def send(self):
-        Poll.current_poll.append(self)
+    async def send(self) -> str:
+        Poll.active_polls.append(self)
 
         embed = discord.Embed(title=self.title, description=self.description, color=discord.Color.blue())
-        message = await self.ctx.send(embed=embed)
-        self.message = message
+        await self.interaction.response.send_message(embed=embed)
+        self.response = await self.interaction.original_response()
 
-        if hasattr(self, "inputs"):
+        if self.inputs:
             for i in range(len(self.inputs)):
-                await self.message.add_reaction(Poll.reactions[i])
-        elif self.yes_no:
+                await self.response.add_reaction(Poll.reactions[i])
+        else:
             for i in Poll.voting:
-                await self.message.add_reaction(i)
+                await self.response.add_reaction(i)
 
         for i in range(60):
             if self.closed:
-                return
+                return await self.close()
+            if i == 44:
+                embed.description += f"\n\n Poll closing in 15 seconds..."
+                await self.interaction.edit_original_response(embed=embed)
             await asyncio.sleep(1)
-            if i == 45:
-                await self.ctx.send(f"{self.title} closing in 15 seconds...")
-        await self.close()
 
-    async def close(self):
-        Poll.current_poll.remove(self)
+        return await self.close()
 
+    async def close(self) -> str:
+        Poll.active_polls.remove(self)
         self.closed = True
 
-        cache_msg = discord.utils.get(self.bot.cached_messages, id=self.message.id)
-        results = {react.emoji: react.count - 1 for react in cache_msg.reactions}
+        cached_msg = await self.interaction.channel.fetch_message(self.response.id)
+
+        results = {react.emoji: react.count - 1 for react in cached_msg.reactions}
         final = sorted(results.items(), key=lambda x: x[1], reverse=True)
         total = sum(final[x][1] for x in range(len(final)))
 
-        if total == 0:
-            await self.ctx.send("Poll closed. No one voted!")
-        elif hasattr(self, "yes_no"):
-            if final[0][1] > final[1][1]:
-                self.result = final[0][0]
-            else:
-                self.result = "Tie"
-        else:
-            message = "Results are in!"
-            for key, value in final:
-                message += "\n**{}**: {} vote(s) [{:.3}%]".format(self.inputs[Poll.reactions.index(key)], value,
-                                                                  value / total * 100)
-            await self.ctx.send(message)
+        await self.response.clear_reactions()
 
+        if total == 0:
+            return await self.interaction.edit_original_response(content="Poll closed. No one voted!")
+        elif self.inputs:
+            description = ""
+            for key, value in final:
+                description += "**{}**: {} vote(s) [{:.4}%]\n".format(self.inputs[Poll.reactions.index(key)], value,
+                                                                  value / total * 100)
+                
+            self.embed = discord.Embed(title="Poll Results", description=description[:-1], color=discord.Color.blue())
+
+        if final[0][1] > final[1][1]:
+            result = final[0][0]
+        else:
+            result = "Tie"
+        return result
+        
 
 class Polls(commands.Cog):
     current_poll = []
@@ -79,9 +83,9 @@ class Polls(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(brief="Vote on a list of entries.",
-                      description="Give The Big Gay a list of entries separated by a comma, and then vote.")
-    async def poll(self, ctx: commands.Context, *, inputs: str):
+    @app_commands.command(description="Vote on a list of entries")
+    @app_commands.describe(inputs="your poll entries *separated by a comma*")
+    async def poll(self, interaction: discord.Interaction, *, inputs: str):
         description = str()
         choices = str(inputs).split(", ")
 
@@ -92,76 +96,89 @@ class Polls(commands.Cog):
             description += "{}: **{}**".format(Poll.reactions[i], choice)
             i += 1
 
-        reg_poll = Poll(ctx, "Poll", description, inputs=choices, bot=self.bot)
+        reg_poll = Poll(interaction, "Poll", description, inputs=choices)
         await reg_poll.send()
+        await interaction.edit_original_response(embed=reg_poll.embed)
 
-    @commands.command(brief="Vote on if a user is bitching too much",
-                      description="If found guilty, the user caught bitching will be muted for 60 seconds.")
-    async def bitchalert(self, ctx: commands.Context, member: discord.Member = None):
+
+    @app_commands.command(description="Vote on if a user is bitching too much")
+    @app_commands.describe(member="the member to accuse")
+    async def bitchalert(self, interaction: discord.Interaction, member: discord.Member):
+        # App commands don't get the same member objects as normal commands...
+        member = interaction.guild.get_member(member.id)
+
         if member.bot:
-            return await ctx.send(f"{ctx.author.mention} Nice try bitch.")
+            return await interaction.response.send_message("Nice try, bitch.", ephemeral=True)
         if member.status == discord.Status.offline:
-            return await ctx.send(f"Chill out! {member.mention} isn't even online.")
+            return await interaction.response.send_message(f"Chill out! {member.mention} isn't even online.", ephemeral=True)
 
         description = f"Is {member.mention} being a little bitch?"
-        bitch_poll = Poll(ctx, "Bitch Alert", description, yes_no=True, bot=self.bot)
-        await bitch_poll.send()
+        bitch_poll = Poll(interaction, "Bitch Alert", description)
+        result = await bitch_poll.send()
 
-        if bitch_poll.result == "👍":
-            role = discord.utils.get(ctx.guild.roles, name="Bitch")
+        if result == "👍":
+            role = discord.utils.get(interaction.guild.roles, name="Bitch")
             await member.add_roles(role)
             try:
                 await member.edit(mute=True)
+            except discord.errors.HTTPException:
+                pass
             except Exception as e:
-                print(e)
+                print("Error muting member for bitchalert: ", e)
 
-            await ctx.send(f"{member.mention} Begone, THOT!")
+            await interaction.edit_original_response(content=f"The people have spoken.\n{member.mention} Begone, THOT!", embed=None)
 
             await asyncio.sleep(60)
 
             await member.remove_roles(role)
             try:
                 await member.edit(mute=False)
+            except discord.errors.HTTPException:
+                pass
             except Exception as e:
-                print(e)
-
-        elif bitch_poll.result is None:
-            return
+                print("Error unmuting member for bitchalert: ", e)
 
         else:
-            await ctx.send(f"{member.mention}, you just keep on bitching. All good here.")
+            await interaction.edit_original_response(content=f"{member.mention}, you just keep on bitching. All good here.", embed=None)
 
+    # TODO Make a banish command for the shop that does this without the poll?
     # creates a poll for sending a user to a secondary channel, adding the 'banished' role
-    @commands.command(brief="Vote to send a user to The Shadow Realm",
-                      description="If the vote passes, the user is banished and cannot come back to the main channels, "
-                                  "and must remain in purgatory for 60 seconds.")
-    async def banish(self, ctx: commands.Context, member: discord.Member = None):
+    @app_commands.command(description="Vote to send a user to The Shadow Realm")
+    @app_commands.describe(member="the member to banish")
+    async def banish(self, interaction: discord.Interaction, member: discord.Member = None):
+        # App commands don't get the same member objects as normal commands...
+        member = interaction.guild.get_member(member.id)
         if not hasattr(member.voice, "channel"):
-            return await ctx.send(f"{member.mention} is not in a voice channel!")
+            return await interaction.response.send_message(f"{member.mention} is not in a voice channel!", ephemeral=True)
+        channel = member.voice.channel
+
         if member.bot:
-            return await ctx.send(f"{ctx.author.mention} Nice try, bitch.")
+            return await interaction.response.send_message("Nice try, bitch.")
         if member.status == discord.Status.offline:
-            return await ctx.send(f"Chill out! {member.mention} isn't even online.")
+            return await interaction.response.send_message(f"Chill out! {member.mention} isn't even online.", ephemeral=True)
 
         description = f"Send {member.mention} to the shadow realm?"
-        banish_poll = Poll(ctx, "Banishment", description, yes_no=True, bot=self.bot)
-        await banish_poll.send()
+        banish_poll = Poll(interaction, "Banishment", description)
+        result = await banish_poll.send()
 
-        if banish_poll.result == "👍":
-            role = discord.utils.get(ctx.guild.roles, name="Banished")
+        if result == "👍":
+            role = discord.utils.get(interaction.guild.roles, name="Banished")
             await member.add_roles(role)
 
-            category = await ctx.guild.create_category("The Shadow Realm")
-            s_channel = await ctx.guild.create_voice_channel("Hell", category=category)
+            category = await interaction.guild.create_category("The Shadow Realm")
+            s_channel = await interaction.guild.create_voice_channel("Hell", category=category)
 
-            await play(ctx, url="https://youtu.be/ts7rkLrAios", name="shadow.mp3",
-                             channel=member.guild.voice_channels[0], wait=3)
+            embed = discord.Embed(title="Banishment", description=f"The people have spoken.\nLater, {member.mention}!", color=discord.Color.blue())
+
+            await interaction.edit_original_response(embed=embed)
+
+            # TODO use a soundboard clip for this?
+            await play(interaction.client, name="shadow.mp3", channel=channel, wait=3)
 
             try:
                 await member.move_to(s_channel)
 
-                await play(ctx, url="https://youtu.be/AVz_lLnp6wI", name="hell.mp3",
-                                 channel=s_channel, wait=60)
+                await play(interaction.client, name="hell.mp3", channel=s_channel, wait=60)
 
             except discord.errors.HTTPException:
                 await asyncio.sleep(60)
@@ -170,20 +187,17 @@ class Polls(commands.Cog):
             await s_channel.delete()
             await category.delete()
 
-        elif banish_poll.result is None:
-            return
-
         else:
-            await ctx.send("Not enough votes. Lucky you!")
+            await interaction.edit_original_response(content="Not enough votes. Lucky you!", embed=None)
 
-    @commands.command(brief="Closes the most recent poll.",
-                      description="The latest poll to be created will be closed with this command.", hidden=True)
-    @commands.has_permissions(manage_messages=True)
-    async def closepoll(self, ctx: commands.Context):
-        if Poll.current_poll:
-            await Poll.current_poll[-1].close()
+    @app_commands.command(description="Closes the most recent poll.")
+    @app_commands.default_permissions(manage_messages=True)
+    async def closepoll(self, interaction: discord.Interaction):
+        if Poll.active_polls:
+            Poll.active_polls[-1].closed = True
+            return await interaction.response.send_message("Current poll closed.")
         else:
-            return await ctx.send("There is no poll currently running!")
+            return await interaction.response.send_message("There is no poll currently running!", ephemeral=True)
 
 
 async def setup(bot):
