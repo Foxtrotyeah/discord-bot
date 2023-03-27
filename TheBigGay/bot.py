@@ -142,7 +142,12 @@ bot = GayBot()
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
     print(error)
-    await interaction.response.send_message("Uh oh... \**grunts*\* something's not right here... \**farts*\*", ephemeral=True)
+
+    error_message = "Uh oh... \**grunts*\* something's not right here... \**farts*\*"
+    try:
+        await interaction.response.send_message(error_message, ephemeral=True)
+    except discord.errors.InteractionResponded:
+        await interaction.edit_original_response(content=error_message, embed=None, view=None)
 
 if __name__ == '__main__':
     bot.run()
