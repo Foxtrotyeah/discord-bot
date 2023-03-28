@@ -36,121 +36,128 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
 
     @app_commands.command(description="The gaybucks shop")
     async def shop(self, interaction: discord.Interaction):
+        options = {
+            "mute": (discord.SelectOption(
+                label="Mute",
+                emoji="🔇",
+                description="*75 gb*: Mutes a user for 60 seconds",
+                value="mute"
+            ), 75, self.mute),
+            "boot": (discord.SelectOption(
+                label="Boot",
+                emoji="🥾",
+                description="*100 gb*: Kick a user",
+                value="boot"
+            ), 100, self.boot),
+            "admin": (discord.SelectOption(
+                label="Admin",
+                emoji="🛡️",
+                description="*300 gb*: Receive admin privileges for 30 minutes",
+                value="admin"
+            ), 300, self.admin),
+            "trap": (discord.SelectOption(
+                label="Trap",
+                emoji="❗",
+                description="*1000 gb*: Lay a trap for someone upon joining voice chat",
+                value="trap"
+            ), 1000, self.trap),
+            "step_bro": (discord.SelectOption(
+                label="Step Bro",
+                emoji="👨‍👦",
+                description="*10,000 gb*: Receive the permanent title of 'Step Bro'",
+                value="step_bro"
+            ), 10000, self.step_bro)
+        }
+
+        view = View()
         select = Select(
             min_values=0,
             max_values=1,
             placeholder="View shop items",
-            options=[
-                discord.SelectOption(
-                    label="Mute",
-                    emoji="🔇",
-                    description="*75 gb*: Mutes a user for 60 seconds",
-                    value="mute"
-                ),
-                discord.SelectOption(
-                    label="Boot",
-                    emoji="🥾",
-                    description="*100 gb*: Kick a user",
-                    value="boot"
-                ),
-                discord.SelectOption(
-                    label="Admin",
-                    emoji="🛡️",
-                    description="*300 gb*: Receive admin privileges for 30 minutes",
-                    value="admin"
-                ),
-                discord.SelectOption(
-                    label="Trap",
-                    emoji="❗",
-                    description="*1000 gb*: Lay a trap for someone upon joining voice chat",
-                    value="trap"
-                ),
-                discord.SelectOption(
-                    label="Step Bro",
-                    emoji="👨‍👦",
-                    description="*10,000 gb*: Receive the permanent title of 'Step Bro'",
-                    value="step_bro"
-                )
-            ]
+            options=[x[0] for x in options.values()]
         )
 
         async def callback(interaction: discord.Interaction):
-            user_select = UserSelect(
-                min_values=0,
-                max_values=1
-            )
-            view.add_item(user_select)
+            value = select.values[0]
+            option = options[value]
 
-            await interaction.edit_original_response(view=view)
+            # Lock select value to the item they chose
+            option[0].default = True
+            view.children[0].disabled = True
+
+            # Check if they can affor this option
+            if mysql.get_wallet(interaction.user)[0] < option[1]:
+                await interaction.response.edit_message(view=view)
+                return await interaction.followup.send("Yeah? With what money?", ephemeral=True)
+
+            # TODO Finish routes for admin and step_bro
+            if value in ("mute", "boot", "trap"):
+                user_select = UserSelect(
+                    min_values=0,
+                    max_values=1,
+                    placeholder=f"Select a user to {value}"
+                )
+                
+                async def user_callback(interaction: discord.Interaction):
+                    member = user_select.values[0]
+
+                    # Disable user_select
+                    view.children[1].disabled = True
+                    await interaction.response.edit_message(view=view)
+
+                    await option[2](interaction, member)
+
+                user_select.callback = user_callback
+
+                view.add_item(user_select)
+
+                await interaction.response.edit_message(view=view)
 
         select.callback = callback
 
-        view = View()
         view.add_item(select)
 
         await interaction.response.send_message(view=view, ephemeral=True)
 
-        # description = str()
+    async def mute(self, interaction: discord.Interaction, member: discord.Member):        
+        mysql.update_balance(interaction.user, -75)
 
-        # for command in self.get_commands():
-        #     if command.name == "shop":
-        #         continue
-
-        #     if command.name in ('admin', 'daddy'):
-        #         description += f"**{command.name}** - {command.description}\n\n"
-
-        #     elif command.name == 'trap':
-        #         description += f"**{command.name} <username>** - {command.description}\n\n"
-            
-        #     else:
-        #         description += f"**{command.name} <user>** - {command.description}\n\n"
-
-
-        # embed.add_field(name="\u200b", value=description, inline=False)
-
-        # await ctx.send(embed=embed)
-
-    @commands.command(description="*75 gb*: Mutes a user for 60 seconds.")
-    async def mute(self, ctx: commands.Context, member: discord.Member):
-        checks.is_valid_bet(ctx, ctx.author, 50)
-        
-        mysql.update_balance(ctx.author, -50)
-
-        role = discord.utils.get(ctx.guild.roles, name="Bitch")
+        role = discord.utils.get(interaction.guild.roles, name="Bitch")
         await member.add_roles(role)
         try:
             await member.edit(mute=True)
+        except discord.errors.HTTPException:
+            pass
         except Exception as e:
-            print(e)
+            print()
 
-        await ctx.send(f"{member.mention} Shush.")
+        await interaction.followup.send(f"{member.mention} Shush.")
 
         await asyncio.sleep(60)
 
         await member.remove_roles(role)
         try:
             await member.edit(mute=False)
+        except discord.errors.HTTPException:
+            pass
         except Exception as e:
             print(e)
 
-    @commands.command(description="*100 gb*: Force a user to disconnect until they message The Big Gay.")
-    async def boot(self, ctx: commands.Context, member: discord.Member):    
-        checks.is_valid_bet(ctx, ctx.author, 100)
+    async def boot(self, interaction: discord.Interaction, member: discord.Member):    
+        mysql.update_balance(interaction.user, -100)
 
-        mysql.update_balance(ctx.author, -100)
-
-        role = discord.utils.get(ctx.guild.roles, name="Banished")
+        role = discord.utils.get(interaction.guild.roles, name="Banished")
         await member.add_roles(role)
         try:
             await member.move_to(None)
         except Exception as e:
+            print(type(e))
             print(e)
 
-        await ctx.send(f"{member.mention} Begone, THOT! Check your DM's to get your privileges back 😉")
+        await interaction.followup.send(f"{member.mention} Begone, THOT! Check your DM's to get your privileges back 😉")
 
         await member.send("Looks like you got put in time out. If you want back in, you'd better beg for daddy.")
 
-    @commands.command(description="*300 gb*: Receive admin privileges for 30 minutes.")
     async def admin(self, ctx: commands.Context):
         if "Admin Lite" in [x.name for x in ctx.author.roles]:
             return await ctx.send(
@@ -168,25 +175,13 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
         await asyncio.sleep(60*30)
         await ctx.author.remove_roles(role)
 
-    @commands.command(description="*1000 gb*: Lay a trap for someone upon joining voice chat.")
-    async def trap(self, ctx: commands.Context, *, username: str):    
-        checks.is_valid_bet(ctx, ctx.author, 1000)
+    async def trap(self, interaction: discord.Interaction, member: discord.Member):    
+        mysql.update_balance(interaction.user, -1000)
 
-        member = discord.utils.find(lambda m: m.name.lower() == username.lower(), ctx.guild.members)
-        if not member:
-            await ctx.send(f"{ctx.author.mention} I couldn't find user \"{username}\". Try copy-pasting the exact name from their profile (don't @). Deleting...", delete_after=5)
-            await asyncio.sleep(5)
-            await ctx.message.delete()
-            return
-
-        mysql.update_balance(ctx.author, -1000)
-
-        role = discord.utils.get(ctx.guild.roles, name="Windows")
+        role = discord.utils.get(interaction.guild.roles, name="Windows")
         await member.add_roles(role)
 
-        await ctx.send(f"{ctx.author.mention} Trap is set! Deleting the evidence now...", delete_after=5)
-        await asyncio.sleep(5)
-        await ctx.message.delete()
+        await interaction.followup.send(f"Trap for {member.mention} is set!", ephemeral=True)
 
     # 'Daddy' title is no longer able to be bought. Role is still available to those that bought it previously.
     # @commands.command(description="*2000 gb*: Receive the permanent title of 'Daddy'.")
@@ -202,18 +197,29 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
     #     await ctx.author.add_roles(role)
     #     await ctx.send(f"{ctx.author.mention} Congratulations daddy! ;)")
 
-    @commands.command(description="*10,000 gb*: Receive the permanent title of 'Mommy'.")
-    async def mommy(self, ctx: commands.Context):
-        if "Mommy" in [x.name for x in ctx.author.roles]:
-            return await ctx.send(f"{ctx.author.mention} You're already a mommy! What more do you want?")
+    # async def mommy(self, ctx: commands.Context):
+    #     if "Mommy" in [x.name for x in ctx.author.roles]:
+    #         return await ctx.send(f"{ctx.author.mention} You're already a mommy! What more do you want?")
+
+    #     checks.is_valid_bet(ctx, ctx.author, 10000)
+        
+    #     mysql.update_balance(ctx.author, -10000)
+
+    #     role = discord.utils.get(ctx.guild.roles, name="Mommy")
+    #     await ctx.author.add_roles(role)
+    #     await ctx.send(f"{ctx.author.mention} Congratulations... uh, mommy! ;)")
+
+    async def step_bro(self, ctx: commands.Context):
+        if "Step Bro" in [x.name for x in ctx.author.roles]:
+            return await ctx.send(f"{ctx.author.mention} You're already a Step Bro! What more do you want?")
 
         checks.is_valid_bet(ctx, ctx.author, 10000)
         
         mysql.update_balance(ctx.author, -10000)
 
-        role = discord.utils.get(ctx.guild.roles, name="Mommy")
+        role = discord.utils.get(ctx.guild.roles, name="Step Bro")
         await ctx.author.add_roles(role)
-        await ctx.send(f"{ctx.author.mention} Congratulations... uh, mommy! ;)")
+        await ctx.send(f"{ctx.author.mention} Congratulations Step Bro! ;)")
 
 
 async def setup(bot):
