@@ -1,5 +1,7 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
+from discord.ui import View, Select, UserSelect
 import asyncio
 
 from .utils import mysql
@@ -32,32 +34,81 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
                     await member.remove_roles(role)
                     return await message.channel.send("Good boy. You can reconnect to voice channels now!")
 
-    @commands.command(brief="The gaybuck shop.",
-                      description="View and purchase options with your available gaybuck funds.", hidden=False)
-    async def shop(self, ctx: commands.Context):
-        message = "__You can purchase any of the following commands:__"
+    @app_commands.command(description="The gaybucks shop")
+    async def shop(self, interaction: discord.Interaction):
+        select = Select(
+            min_values=0,
+            max_values=1,
+            placeholder="View shop items",
+            options=[
+                discord.SelectOption(
+                    label="Mute",
+                    emoji="🔇",
+                    description="*75 gb*: Mutes a user for 60 seconds",
+                    value="mute"
+                ),
+                discord.SelectOption(
+                    label="Boot",
+                    emoji="🥾",
+                    description="*100 gb*: Kick a user",
+                    value="boot"
+                ),
+                discord.SelectOption(
+                    label="Admin",
+                    emoji="🛡️",
+                    description="*300 gb*: Receive admin privileges for 30 minutes",
+                    value="admin"
+                ),
+                discord.SelectOption(
+                    label="Trap",
+                    emoji="❗",
+                    description="*1000 gb*: Lay a trap for someone upon joining voice chat",
+                    value="trap"
+                ),
+                discord.SelectOption(
+                    label="Step Bro",
+                    emoji="👨‍👦",
+                    description="*10,000 gb*: Receive the permanent title of 'Step Bro'",
+                    value="step_bro"
+                )
+            ]
+        )
 
-        embed = discord.Embed(title="Shop", description=message, color=discord.Color.dark_gold())
+        async def callback(interaction: discord.Interaction):
+            user_select = UserSelect(
+                min_values=0,
+                max_values=1
+            )
+            view.add_item(user_select)
 
-        description = str()
+            await interaction.edit_original_response(view=view)
 
-        for command in self.get_commands():
-            if command.name == "shop":
-                continue
+        select.callback = callback
 
-            if command.name in ('admin', 'daddy'):
-                description += f"**{command.name}** - {command.description}\n\n"
+        view = View()
+        view.add_item(select)
 
-            elif command.name == 'trap':
-                description += f"**{command.name} <username>** - {command.description}\n\n"
+        await interaction.response.send_message(view=view, ephemeral=True)
+
+        # description = str()
+
+        # for command in self.get_commands():
+        #     if command.name == "shop":
+        #         continue
+
+        #     if command.name in ('admin', 'daddy'):
+        #         description += f"**{command.name}** - {command.description}\n\n"
+
+        #     elif command.name == 'trap':
+        #         description += f"**{command.name} <username>** - {command.description}\n\n"
             
-            else:
-                description += f"**{command.name} <user>** - {command.description}\n\n"
+        #     else:
+        #         description += f"**{command.name} <user>** - {command.description}\n\n"
 
 
-        embed.add_field(name="\u200b", value=description, inline=False)
+        # embed.add_field(name="\u200b", value=description, inline=False)
 
-        await ctx.send(embed=embed)
+        # await ctx.send(embed=embed)
 
     @commands.command(description="*75 gb*: Mutes a user for 60 seconds.")
     async def mute(self, ctx: commands.Context, member: discord.Member):
