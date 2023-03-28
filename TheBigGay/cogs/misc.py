@@ -18,8 +18,10 @@ class Miscellaneous(commands.Cog):
     @app_commands.default_permissions(manage_messages=True)
     @app_commands.describe(amount="the number of messages to delete")
     async def purge(self, interaction: discord.Interaction, amount: int = 5):
-        deleted = await interaction.channel.purge(limit=amount)
-        await interaction.response.send_message("Deleted {} message(s)".format(len(deleted)))
+        await interaction.response.defer(thinking=True)
+
+        deleted = await interaction.channel.purge(limit=amount, before=interaction.created_at)
+        await interaction.followup.send("Deleted {} message(s)".format(len(deleted)))
 
     @app_commands.command(description="Gives the latency between the bot and server in ms")
     async def ping(self, interaction: discord.Interaction):
@@ -128,12 +130,22 @@ class Miscellaneous(commands.Cog):
 
         await ctx.send(f'Translated from **{language}**: "{translation}"')
 
-    @commands.hybrid_command(description="Test function")
+    # @commands.hybrid_command(description="Test function")
+    # @app_commands.default_permissions(administrator=True)
+    # async def test(self, ctx: commands.Context, member: discord.Member):
+    #     ctx_member = ctx.guild.get_member(member.id)
+    #     ctx_interaction = ctx.interaction.user.status
+    #     print(member.status, ctx_member.status, ctx_interaction)
+    #     await ctx.send(f"Their status: {member.status}")
+
+    @app_commands.command()
     @app_commands.default_permissions(administrator=True)
-    async def test(self, ctx: commands.Context, member: discord.Member):
-        member2 = ctx.guild.get_member(member.id)
-        print(member.status, member2.status, member.raw_status)
-        await ctx.send(f"Their status: {member.status}")
+    async def test(self, interaction: discord.Interaction):
+        choices = [
+            app_commands.Choice(name="hello", value="hello"), 
+            app_commands.Choice(name="goodbye", value="goodbye")
+        ]
+        await interaction.response.autocomplete(choices)
 
     @app_commands.command(description="Sync command tree")
     @app_commands.default_permissions(administrator=True)
