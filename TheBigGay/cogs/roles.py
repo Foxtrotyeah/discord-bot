@@ -178,13 +178,16 @@ class Roles(commands.Cog):
         for key, value in self.funny.items():
             await funny_message.add_reaction(key)
 
+    # TODO idk what to actually do with this
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        # 'Mommy' role functionality
+        if message.author.bot:
+            return
+        # 'Step Bro' role functionality
         roles = [x.name for x in message.author.roles]
-        if "Mommy" in roles:
+        if "Step Bro" in roles:
             ctx = await self.bot.get_context(message)
-            await ctx.send("*yes, mommy~*")
+            await ctx.send("*sure thing, step bro*")
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
