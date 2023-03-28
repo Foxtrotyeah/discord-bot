@@ -36,7 +36,7 @@ def is_valid_bet(channel: discord.TextChannel, member: discord.Member, amt: int)
         raise MinimumBet()
 
     if mysql.get_wallet(member)[0] < amt:
-        raise commands.CommandError(f"Insufficient funds.")
+        raise app_commands.errors.CheckFailure(f"Insufficient funds.")
 
     return True
 
