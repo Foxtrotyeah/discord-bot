@@ -37,6 +37,10 @@ async def daddy_role(guild: discord.Guild):
 async def mommy_role(guild: discord.Guild):
     await guild.create_role(name="Mommy", color=discord.Color.fuchsia())
 
+# creates the 'step_bro' role
+async def step_bro_role(guild: discord.Guild):
+    await guild.create_role(name="Step Bro", color=discord.Color.blue())
+
 
 # creates the 'he/him' role
 async def he_role(guild: discord.Guild):
@@ -94,6 +98,7 @@ class Roles(commands.Cog):
         "Windows": windows_role,
         "Daddy": daddy_role,
         "Mommy": mommy_role,
+        "Step Bro": step_bro_role,
         "she/her": she_role,
         "he/him": he_role,
         "they/them": they_role,
@@ -228,11 +233,11 @@ class Roles(commands.Cog):
         if payload.member.bot:
             return
 
-        channel = await self.bot.fetch_channel(payload.channel_id)
+        channel = self.bot.get_channel(payload.channel_id)
         if channel.name != "get-your-roles":
             return
 
-        guild = await self.bot.fetch_guild(payload.guild_id)
+        guild = self.bot.get_guild(payload.guild_id)
 
         if str(payload.emoji) in self.pronouns:
             role = discord.utils.get(guild.roles, name=self.pronouns[str(payload.emoji)])
@@ -249,8 +254,8 @@ class Roles(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         guild = self.bot.get_guild(payload.guild_id)
-        user = guild.get_member(payload.user_id)
-        if user.bot:
+        member = guild.get_member(payload.user_id)
+        if member.bot:
             return
 
         channel = self.bot.get_channel(payload.channel_id)
@@ -259,15 +264,15 @@ class Roles(commands.Cog):
 
         if str(payload.emoji) in self.pronouns:
             role = discord.utils.get(guild.roles, name=self.pronouns[str(payload.emoji)])
-            await user.remove_roles(role)
+            await member.remove_roles(role)
 
         elif str(payload.emoji) in self.notifications:
             role = discord.utils.get(guild.roles, name=self.notifications[str(payload.emoji)][1])
-            await user.remove_roles(role)
+            await member.remove_roles(role)
 
         elif str(payload.emoji) in self.funny:
             role = discord.utils.get(guild.roles, name=self.funny[str(payload.emoji)])
-            await user.remove_roles(role)
+            await member.remove_roles(role)
 
 
 async def setup(bot):
