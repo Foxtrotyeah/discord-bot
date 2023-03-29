@@ -90,7 +90,6 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
                 await interaction.response.edit_message(view=view)
                 return await interaction.followup.send("Yeah? With what money?", ephemeral=True)
 
-            # TODO Finish routes for admin and step_bro
             if value in ("mute", "boot", "trap"):
                 user_select = UserSelect(
                     min_values=0,
@@ -100,6 +99,9 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
                 
                 async def user_callback(interaction: discord.Interaction):
                     member = user_select.values[0]
+
+                    if member.bot:
+                        return await interaction.response.send_message("...wanna try that again?", ephemeral=True)
 
                     # Disable user_select
                     view.children[1].disabled = True
@@ -112,6 +114,10 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
                 view.add_item(user_select)
 
                 await interaction.response.edit_message(view=view)
+
+            elif value in ("admin", "step_bro"):
+                await interaction.response.edit_message(view=view)
+                await option[2](interaction)
 
         select.callback = callback
 
@@ -129,7 +135,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
         except discord.errors.HTTPException:
             pass
         except Exception as e:
-            print()
+            print(e)
 
         await interaction.followup.send(f"{member.mention} Shush.")
 
@@ -151,29 +157,30 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
         try:
             await member.move_to(None)
         except Exception as e:
-            print(type(e))
             print(e)
 
-        await interaction.followup.send(f"{member.mention} Begone, THOT! Check your DM's to get your privileges back 😉")
+        await interaction.followup.send(f"{member.mention} Begone, THOT! Check your DMs to get your privileges back 😉")
 
         await member.send("Looks like you got put in time out. If you want back in, you'd better beg for daddy.")
 
-    async def admin(self, ctx: commands.Context):
-        if "Admin Lite" in [x.name for x in ctx.author.roles]:
-            return await ctx.send(
-                f"{ctx.author.mention} You still have more time on your current admin privileges!"
+    async def admin(self, interaction: discord.Interaction):
+        member = interaction.user
+
+        if "Admin Lite" in [x.name for x in member.roles]:
+            return await interaction.followup.send(
+                "You still have more time on your current admin privileges!",
+                ephemeral=True
             )
-
-        checks.is_valid_bet(ctx, ctx.author, 200)
         
-        role = discord.utils.get(ctx.guild.roles, name="Admin Lite")
+        mysql.update_balance(member, -300)
+        
+        role = discord.utils.get(interaction.guild.roles, name="Admin Lite")
+        await member.add_roles(role)
 
-        await ctx.author.add_roles(role)
-
-        mysql.update_balance(ctx.author, -200)
+        await interaction.followup.send("Enjoy being admin. Watch out, everybody!")
 
         await asyncio.sleep(60*30)
-        await ctx.author.remove_roles(role)
+        await member.remove_roles(role)
 
     async def trap(self, interaction: discord.Interaction, member: discord.Member):    
         mysql.update_balance(interaction.user, -1000)
@@ -209,17 +216,16 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
     #     await ctx.author.add_roles(role)
     #     await ctx.send(f"{ctx.author.mention} Congratulations... uh, mommy! ;)")
 
-    async def step_bro(self, ctx: commands.Context):
-        if "Step Bro" in [x.name for x in ctx.author.roles]:
-            return await ctx.send(f"{ctx.author.mention} You're already a Step Bro! What more do you want?")
-
-        checks.is_valid_bet(ctx, ctx.author, 10000)
+    async def step_bro(self, interaction: discord.Interaction):
+        member = interaction.user
+        if "Step Bro" in [x.name for x in member.roles]:
+            return await interaction.followup.send("You're already a Step Bro! What more do you want?", ephemeral=True)
         
-        mysql.update_balance(ctx.author, -10000)
+        mysql.update_balance(member, -10000)
 
-        role = discord.utils.get(ctx.guild.roles, name="Step Bro")
-        await ctx.author.add_roles(role)
-        await ctx.send(f"{ctx.author.mention} Congratulations Step Bro! ;)")
+        role = discord.utils.get(interaction.guild.roles, name="Step Bro")
+        await member.add_roles(role)
+        await interaction.followup.send("Welcome to the family, Step Bro! ;)")
 
 
 async def setup(bot):
