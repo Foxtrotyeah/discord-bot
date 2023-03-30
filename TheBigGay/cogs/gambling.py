@@ -99,49 +99,46 @@ class Gambling(commands.Cog):
             description=(
                 f"What are the odds I give you money? "
                 "(Choose a number between 2 and 10)"
-                f"\n \nUser: {interaction.user.mention}"
             ),
             color=discord.Color.green()
         )
-        message1 = await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed)
+        message = await interaction.original_response()
 
         for option in options:
-            if option == "1️⃣":
-                continue
-            await message1.add_reaction(option)
+            await message.add_reaction(option)
 
         def react_check(reaction: discord.Reaction, user: discord.User):
-            return user.id == interaction.user.id and reaction.message.id == message1.id and str(reaction) in options
+            return user.id == interaction.user.id and reaction.message.id == message.id and str(reaction) in options[1:]
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
+            await message.remove_reaction(reaction.emoji, user)
         except asyncio.TimeoutError:
-            return await message1.delete()
+            return await message.delete()
 
         choice = options.index(str(reaction)) + 1
-        await message1.delete()
 
         # Message to actually guess the number with reactions
         embed = discord.Embed(
             title="Odds",
             description=(
                 f"You chose 1 in {choice} odds. Here we go: three, two, one..."
-                f"\n \nUser: {interaction.user.mention}"
             ),
             color=discord.Color.green()
-        )                 
-        message2 = await interaction.response.send_message(embed=embed)
+        )    
 
-        for i in range(choice):
-            await message2.add_reaction(options[i])
+        # TODO remove unnecessary reactions (don't need 3-10 for a 1 in 2 bet)
+
+        await interaction.edit_original_response(embed=embed)             
 
         def react_check(reaction: discord.Reaction, user: discord.User):
-            return user.id == interaction.user.id and reaction.message.id == message2.id and str(reaction) in options
+            return user.id == interaction.user.id and reaction.message.id == message.id and str(reaction) in options
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
         except asyncio.TimeoutError:
-            await message2.delete()
+            await message.delete()
             return
 
         result = options.index(str(reaction)) + 1
@@ -151,35 +148,25 @@ class Gambling(commands.Cog):
             payout = bet * choice
             balance = mysql.update_balance(interaction.user, payout - bet)
 
-            embed = discord.Embed(
-                title="Odds",
-                description=(
-                    f"You chose 1 in {choice}. Here we go: three, two, one..."
-                    f"\n \n**{pick}!** Congrats, {interaction.user.mention}! "
-                    f"At **{choice}:1 odds**, your payout is **{payout} gaybucks**."
-                ),
-                color=discord.Color.green()
-            )
+            embed.description += f"\n \n...**{pick}!** Congrats, {interaction.user.mention}! "\
+                f"At **{choice}:1 odds**, your payout is **{payout} gaybucks**."
+
             embed.add_field(name="Balance", value=f"You now have {balance} gaybucks.",
                             inline=False)
 
             if mysql.check_leaderboard("Odds", interaction.user, payout):
-                await interaction.response.send_message("New Odds high score!")
+                await interaction.followup.send(f"New Odds high score of **{payout}GB**, set by {interaction.user.mention}!")
         else:
             balance = mysql.update_balance(interaction.user, -bet)
             mysql.add_to_lottery(self.bot, interaction.guild, bet)
-            embed = discord.Embed(
-                title="Odds",
-                description=(
-                    f"You chose 1 in {choice}. Here we go: three, two, one..."
-                    f"\n \n**{pick}!** Sorry,{interaction.user.mention}, better luck next time."
-                ),
-                color=discord.Color.red()
-            )
+
+            embed.description += f"\n \n...**{pick}!** Sorry,{interaction.user.mention}. Better luck next time."
+            embed.color = discord.Color.red()
+
             embed.add_field(name="Balance", value=f"You now have {balance} gaybucks.",
                             inline=False)
 
-        await message2.edit(embed=embed)
+        await interaction.edit_original_response(embed=embed)
 
     @app_commands.command(description="(2 Players) Bet with a friend to see who wins with a higher card.")
     @app_commands.describe(member="player 2", bet="your bet in gaybucks")
