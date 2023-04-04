@@ -128,7 +128,7 @@ class GayBot(commands.AutoShardedBot):
     async def on_ready(self):
         await self.tree.sync()
         
-        game = discord.Game("with a DILF | .help")
+        game = discord.Game("with a DILF")
         await self.change_presence(status=discord.Status.online, activity=game)
 
         print(f"Bot is ready: {self.user} with ID: {self.user.id}")
