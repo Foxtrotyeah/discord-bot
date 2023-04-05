@@ -9,12 +9,12 @@ from . import mysql
 high_roller_minimum = 1000
 
 
-class WrongChannel(commands.CheckFailure):
+class WrongChannel(app_commands.CheckFailure):
     def __str__(self):
         return "This command is only allowed in the gambling hall channels."
 
 
-class MinimumBet(commands.CheckFailure):
+class MinimumBet(app_commands.CheckFailure):
     def __str__(self):
         return f"Bets in the high roller hall must meet the minimum bet: **{high_roller_minimum} gaybucks**."
 
@@ -30,13 +30,13 @@ class IneligibleForSubsidy(app_commands.CheckFailure):
 
 def is_valid_bet(channel: discord.TextChannel, member: discord.Member, amt: int):
     if amt <= 0:
-        raise commands.CommandError("You have to place a nonzero bet.")
+        raise app_commands.CheckFailure("You have to place a nonzero bet.")
 
     if channel.name == 'high-roller-hall' and amt < high_roller_minimum:
         raise MinimumBet()
 
     if mysql.get_wallet(member)[0] < amt:
-        raise app_commands.errors.CheckFailure(f"Insufficient funds.")
+        raise app_commands.CheckFailure(f"Insufficient funds.")
 
     return True
 
