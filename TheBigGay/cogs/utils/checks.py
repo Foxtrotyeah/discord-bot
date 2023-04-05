@@ -28,7 +28,7 @@ class IneligibleForSubsidy(app_commands.CheckFailure):
         )
 
 
-def is_valid_bet(channel: discord.TextChannel, member: discord.Member, amt: int):
+def is_valid_bet(channel: discord.TextChannel, member: discord.Member, amt: int) -> bool:
     if amt <= 0:
         raise app_commands.CheckFailure("You have to place a nonzero bet.")
 
