@@ -37,7 +37,7 @@ class Economy(commands.Cog):
                 channels = [item[1] for item in guild.by_category() if item[0].name == "Gambling"][0]
                 main_hall = [channel for channel in channels if channel.name == "main-hall"][0]
 
-                winner, balance = mysql.choose_lottery_winner(self.bot, guild)
+                winner, balance = mysql.choose_lottery_winner(self.bot.application_id, guild)
 
                 description = f"CONGRATS, {winner.mention}, you're rich!! Your balance is now **{balance} gaybucks**"
                 embed = discord.Embed(title="Lottery Results", description=description, color=discord.Color.gold())
@@ -74,7 +74,7 @@ class Economy(commands.Cog):
 
     @app_commands.command(description="Shows each member's current GB balance")
     async def economy(self, interaction: discord.Interaction):
-        economy = mysql.get_economy(self.bot, interaction.guild)
+        economy = mysql.get_economy(self.bot.application_id, interaction.guild)
         sorted_economy = sorted(economy, key=lambda tup: tup[1], reverse=True)
 
         embed = discord.Embed(title="Economy Top 5", color=discord.Color.purple())
@@ -103,13 +103,13 @@ class Economy(commands.Cog):
         ticket_price = 50
         checks.is_valid_bet(interaction.channel, interaction.user, amount * ticket_price)
 
-        tickets = mysql.buy_ticket(self.bot, interaction.user, amount)
+        tickets = mysql.buy_ticket(self.bot.application_id, interaction.user, amount)
 
         await interaction.response.send_message(f"You now have **{tickets}** lottery tickets.", ephemeral=True)
 
     @app_commands.command(description="Shows the current lottery jackpot.")
     async def lottery(self, interaction: discord.Interaction):
-        result = mysql.get_lottery(self.bot, interaction.guild)
+        result = mysql.get_lottery(self.bot.application_id, interaction.guild)
 
         description = f"The current lottery jackpot is **{result} gaybucks**. Buy your tickets with **/ticket** before the drawing at the end of the month!"
         

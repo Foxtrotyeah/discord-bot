@@ -1,13 +1,11 @@
 import requests
 from urllib.parse import urlencode
 
-from typing import Tuple
-
 
 URL = "https://papago-extension.herokuapp.com/api/v1/detect?"
 
 
-def translate(text: str) -> Tuple[str, str]:
+def translate(text: str) -> tuple[str, str]:
     params = {
         'target': "en",
         'text': text,

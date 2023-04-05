@@ -1,12 +1,9 @@
 import discord
-from discord.ext import commands
 import pymysql
 import os
 from datetime import datetime
 import pytz
 import random
-
-from typing import List, Tuple
 
 
 config = {
@@ -31,7 +28,7 @@ def _test_connection(function: callable):
         except pymysql.OperationalError:
             db.ping(reconnect=True)
 
-def _execute(sql: str, commit: bool = False) -> Tuple[Tuple, ...]:
+def _execute(sql: str, commit: bool = False) -> tuple[tuple, ...]:
     cursor = db.cursor()
     _test_connection(lambda: cursor.execute(sql))
 
@@ -96,7 +93,7 @@ def _check_status(table: str, member_id: int):
     cursor.close()
 
 
-def _get_user_data(member_id: int, guild_id: int) -> Tuple:
+def _get_user_data(member_id: int, guild_id: int) -> tuple[str, int, datetime, int]:
     cursor = db.cursor()
     table = str(guild_id) + "_economy"
 
@@ -109,14 +106,14 @@ def _get_user_data(member_id: int, guild_id: int) -> Tuple:
     return result
 
 
-def get_wallet(member: discord.Member) -> Tuple[int, int]:
+def get_wallet(member: discord.Member) -> tuple[int, int]:
     result = _get_user_data(member.id, member.guild.id)
 
     return (result[1], result[3])
 
 
 # Get all economy data
-def get_economy(bot: commands.Bot, guild: discord.Guild) -> List[tuple]:
+def get_economy(application_id: int, guild: discord.Guild) -> list[tuple]:
     cursor = db.cursor()
     table = str(guild.id) + "_economy"
 
@@ -125,7 +122,7 @@ def get_economy(bot: commands.Bot, guild: discord.Guild) -> List[tuple]:
     result = cursor.fetchall()
     cursor.close()
 
-    result = [x for x in result if x[0] != str(bot.application_id)]
+    result = [x for x in result if x[0] != str(application_id)]
 
     return result
 
@@ -168,27 +165,27 @@ def subsidize(member: discord.Member) -> int:
     return new_bal
 
 
-def add_to_lottery(bot: commands.Bot, guild: discord.Guild, amt: int):
+def add_to_lottery(application_id: int, guild: discord.Guild, amt: int):
     cursor = db.cursor()
     table = str(guild.id) + "_economy"
 
-    result = _get_user_data(bot.application_id, guild.id)
+    result = _get_user_data(application_id, guild.id)
 
     new_bal = result[1] + int(round(amt * 0.05))    # Add 5% of all losings to the lottery.
 
-    cursor.execute(f"UPDATE {table} SET balance={new_bal} WHERE user_id={bot.application_id}")
+    cursor.execute(f"UPDATE {table} SET balance={new_bal} WHERE user_id={application_id}")
     db.commit()
     cursor.close()
 
 
-def buy_ticket(bot: commands.Bot, member: discord.Member, amt: int) -> int:
+def buy_ticket(application_id: int, member: discord.Member, amt: int) -> int:
     cursor = db.cursor()
     table = str(member.guild.id) + "_economy"
 
     ticket_price = 50
 
     user_result = _get_user_data(member.id, member.guild.id)
-    bot_result = _get_user_data(bot.application_id, member.guild.id)
+    bot_result = _get_user_data(application_id, member.guild.id)
 
     user_bal = max(user_result[1] - (ticket_price * amt), 0)
     bot_bal = bot_result[1] + (ticket_price * amt)
@@ -196,14 +193,14 @@ def buy_ticket(bot: commands.Bot, member: discord.Member, amt: int) -> int:
     total = user_result[3] + amt
 
     cursor.execute(f"UPDATE {table} SET balance={user_bal}, tickets={total} WHERE user_id={member.id}")
-    cursor.execute(f"UPDATE {table} SET balance={bot_bal} WHERE user_id={bot.application_id}")
+    cursor.execute(f"UPDATE {table} SET balance={bot_bal} WHERE user_id={application_id}")
     db.commit()
     cursor.close()
 
     return total
 
 
-def choose_lottery_winner(bot: commands.Bot, guild: discord.Guild) -> Tuple[discord.Member, int]:
+def choose_lottery_winner(application_id: int, guild: discord.Guild) -> tuple[discord.Member, int]:
     cursor = db.cursor()
     table = str(guild.id) + "_economy"
 
@@ -219,40 +216,40 @@ def choose_lottery_winner(bot: commands.Bot, guild: discord.Guild) -> Tuple[disc
                 tickets.append(holder[0])
     # If no ticket holders, a random person gets the pot.
     else:
-        tickets = [member[0] for member in result if member[0] != str(bot.application_id)]
+        tickets = [member[0] for member in result if member[0] != str(application_id)]
 
     winner_id = int(random.choice(tickets))
 
     winner_balance = _get_user_data(winner_id, guild.id)[1]
-    lottery_total = get_lottery(bot, guild)
+    lottery_total = get_lottery(application_id, guild)
     new_bal = winner_balance + lottery_total
 
     cursor.execute(f"UPDATE {table} SET balance={new_bal} WHERE user_id={winner_id}")
     db.commit()
     cursor.close()
 
-    _reset_lottery(bot, guild)
+    _reset_lottery(application_id, guild)
 
     return guild.get_member(winner_id), new_bal
 
 
-def get_lottery(bot: commands.Bot, guild: discord.Guild) -> int:
-    result = _get_user_data(bot.application_id, guild.id)
+def get_lottery(application_id: int, guild: discord.Guild) -> int:
+    result = _get_user_data(application_id, guild.id)
 
     return result[1]
 
 
-def _reset_lottery(bot: commands.Bot, guild: discord.Guild):
+def _reset_lottery(application_id: int, guild: discord.Guild):
     cursor = db.cursor()
     table = str(guild.id) + "_economy"
 
     cursor.execute(f"UPDATE {table} SET tickets=0")
-    cursor.execute(f"UPDATE {table} SET balance=0 WHERE user_id={bot.application_id}")
+    cursor.execute(f"UPDATE {table} SET balance=0 WHERE user_id={application_id}")
     db.commit()
     cursor.close()
 
 
-def get_leaderboard(guild: discord.Guild) -> Tuple[Tuple, ...]:
+def get_leaderboard(guild: discord.Guild) -> tuple[tuple, ...]:
     cursor = db.cursor()
     table = str(guild.id) + "_leaderboard"
 

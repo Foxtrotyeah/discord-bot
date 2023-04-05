@@ -5,15 +5,13 @@ import asyncio
 
 from .utils.audio import play
 
-from typing import List
-
 
 class Poll:
     reactions = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
     voting = ["👍", "👎"]
     active_polls = []
 
-    def __init__(self, interaction: discord.Interaction, title: str, description: str, inputs: List[str] = None):
+    def __init__(self, interaction: discord.Interaction, title: str, description: str, inputs: list[str] = None):
         self.interaction = interaction
         self.title = title
         self.description = description
@@ -126,7 +124,7 @@ class Polls(commands.Cog):
             except Exception as e:
                 print("Error muting member for bitchalert: ", e)
 
-            await interaction.edit_original_response(content=f"The people have spoken.\n{member.mention} Begone, THOT!", embed=None)
+            await interaction.followup.send(f"The people have spoken.\n{member.mention} Begone, THOT!")
 
             await asyncio.sleep(60)
 
@@ -139,7 +137,7 @@ class Polls(commands.Cog):
                 print("Error unmuting member for bitchalert: ", e)
 
         else:
-            await interaction.edit_original_response(content=f"{member.mention}, you just keep on bitching. All good here.", embed=None)
+            await interaction.followup.send(f"{member.mention}, you just keep on bitching. All good here.")
 
     # TODO Make a banish command for the shop that does this without the poll?
     # creates a poll for sending a user to a secondary channel, adding the 'banished' role
@@ -168,17 +166,15 @@ class Polls(commands.Cog):
             category = await interaction.guild.create_category("The Shadow Realm")
             s_channel = await interaction.guild.create_voice_channel("Hell", category=category)
 
-            embed = discord.Embed(title="Banishment", description=f"The people have spoken.\nLater, {member.mention}!", color=discord.Color.blue())
-
-            await interaction.edit_original_response(embed=embed)
+            await interaction.followup.send(f"The people have spoken.\nLater, {member.mention}!")
 
             # TODO use a soundboard clip for this?
-            await play(interaction.client, name="shadow.mp3", channel=channel, wait=3)
+            await play(interaction.client, name="shadow.mp3", channel=channel, wait=True)
 
             try:
                 await member.move_to(s_channel)
 
-                await play(interaction.client, name="hell.mp3", channel=s_channel, wait=60)
+                await play(interaction.client, name="hell.mp3", channel=s_channel, wait=True)
 
             except discord.errors.HTTPException:
                 await asyncio.sleep(60)
@@ -188,7 +184,7 @@ class Polls(commands.Cog):
             await category.delete()
 
         else:
-            await interaction.edit_original_response(content="Not enough votes. Lucky you!", embed=None)
+            await interaction.followup.send("Not enough votes. Lucky you!")
 
     @app_commands.command(description="Closes the most recent poll.")
     @app_commands.default_permissions(manage_messages=True)

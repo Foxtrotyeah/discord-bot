@@ -8,8 +8,6 @@ from discord.ext import commands
 from .utils import mysql
 from .utils import checks
 
-from typing import Tuple
-
 
 class Gambling(commands.Cog):
     def __init__(self, bot):
@@ -136,7 +134,7 @@ class Gambling(commands.Cog):
                 await interaction.followup.send(f"New Odds high score of **{payout}GB**, set by {interaction.user.mention}!")
         else:
             balance = mysql.update_balance(interaction.user, -bet)
-            mysql.add_to_lottery(self.bot, interaction.guild, bet)
+            mysql.add_to_lottery(self.bot.application_id, interaction.guild, bet)
 
             embed.description += f"\n\n...**{pick}!** Sorry,{interaction.user.mention}. Better luck next time."
             embed.color = discord.Color.red()
@@ -274,7 +272,7 @@ class Gambling(commands.Cog):
         )
         await interaction.edit_original_response(embed=embed)
 
-        mysql.add_to_lottery(self.bot, interaction.guild, bet)
+        mysql.add_to_lottery(self.bot.application_id, interaction.guild, bet)
 
         if mysql.check_leaderboard("Cardcut", winner, pot):
             await interaction.followup.send(f"New Cardcut high score of **{pot}GB**, set by {winner.mention}!")
@@ -357,7 +355,7 @@ class Gambling(commands.Cog):
                 
         else:
             profit = -bet
-            mysql.add_to_lottery(self.bot, interaction.guild, bet)
+            mysql.add_to_lottery(self.bot.application_id, interaction.guild, bet)
             embed.description += f"\n\n**Horse {winner} Wins**\nYou have lost **{bet} gaybucks**."
             embed.color = discord.Color.red()
 
@@ -410,7 +408,7 @@ class Gambling(commands.Cog):
             risk = 1/(previous*multiplier)
             if random.random() >= risk:
                 profit = -bet
-                mysql.add_to_lottery(self.bot, interaction.guild, bet)
+                mysql.add_to_lottery(self.bot.application_id, interaction.guild, bet)
 
                 embed = discord.Embed(title="Crash", color=discord.Color.red())
                 embed.add_field(name="Crashed at", value="{:.1f}x".format(multiplier), inline=True)
@@ -550,7 +548,7 @@ class Gambling(commands.Cog):
                                 inline=False)
                 await interaction.edit_original_response(embed=embed)
 
-                mysql.add_to_lottery(self.bot, interaction.guild, bet)
+                mysql.add_to_lottery(self.bot.application_id, interaction.guild, bet)
                 return
 
             field = field.replace(choice, '✅')
@@ -681,7 +679,7 @@ class Gambling(commands.Cog):
 
             return description
 
-        def generate_card() -> Tuple[str, str]:
+        def generate_card() -> tuple[str, str]:
             nonlocal used
 
             suit_num = random.randint(0, 3)
@@ -810,7 +808,7 @@ class Gambling(commands.Cog):
             if values['profit'] > 0:
                 if mysql.check_leaderboard("SmokeOrFire", player, values['profit']):
                     await interaction.followup.send(f"New Smoke or Fire high score of **{values['profit']}GB**, set by {interaction.user.mention}!")
-                mysql.add_to_lottery(self.bot, interaction.guild, bet)
+                mysql.add_to_lottery(self.bot.application_id, interaction.guild, bet)
 
             value += f"{player.mention}: {balance}GB\n"
 
@@ -920,7 +918,7 @@ class Gambling(commands.Cog):
         if timeout:
             player2_bal = mysql.update_balance(players[1], bet * 2)
             player1_bal = mysql.update_balance(players[0], -bet)
-            mysql.add_to_lottery(self.bot, ctx.guild, bet)
+            mysql.add_to_lottery(self.bot.application_id, ctx.guild, bet)
 
             description = f"Winner! Kinda. {member.mention} has forfeited (timeout)."
             embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.green())
