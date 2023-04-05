@@ -9,9 +9,6 @@ from collections import Counter
 from cogs.utils import checks
 
 
-# The Big Gay version 3.0.0
-
-
 # Bot link
 r = requests.head(url='https://discord.com/api/v1')
 try:
