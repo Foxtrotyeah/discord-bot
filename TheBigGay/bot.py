@@ -48,6 +48,19 @@ extensions = (
 )
 
 
+class GaybotCommandTree(app_commands.CommandTree):
+    async def on_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+        if isinstance(error, (checks.WrongChannel, checks.MinimumBet, app_commands.CheckFailure)):
+            error_message = error
+        else:
+            error_message = "Uh oh... \**grunts*\* something's not right here... \**farts*\*"
+
+        try:
+            await interaction.response.send_message(error_message, ephemeral=True)
+        except discord.errors.InteractionResponded:
+            await interaction.edit_original_response(content=error_message, embed=None, view=None)
+
+
 class GayBot(commands.AutoShardedBot):
     user: discord.ClientUser
     app_info: discord.AppInfo
@@ -57,7 +70,8 @@ class GayBot(commands.AutoShardedBot):
             command_prefix=command_prefix,
             description=description,
             intents=intents,
-            help_command=help_command
+            help_command=help_command,
+            tree_cls=GaybotCommandTree
         )
 
         self.spam_control = commands.CooldownMapping.from_cooldown(1, 3.0, commands.BucketType.user)
@@ -107,24 +121,6 @@ class GayBot(commands.AutoShardedBot):
         # Continue command execution
         await self.invoke(ctx)
 
-    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        if isinstance(error, (commands.MissingRequiredArgument, commands.BadArgument)):
-            return await ctx.send_help(ctx.command)
-
-        elif isinstance(error, commands.CommandOnCooldown):
-            return await ctx.send(error, delete_after=5)
-
-        elif isinstance(error, (checks.WrongChannel, checks.MinimumBet)):                
-            await ctx.send(f"{ctx.author.mention} {error}", delete_after=10)
-
-            await asyncio.sleep(10)
-            await ctx.message.delete()
-            return
-
-        else:
-            return await ctx.send(f"{ctx.author.mention} {error}")
-
-
     async def on_ready(self):
         await self.tree.sync()
         
@@ -135,19 +131,3 @@ class GayBot(commands.AutoShardedBot):
 
     def run(self):
         return super().run(os.environ['TOKEN'])
-    
-
-bot = GayBot()
-
-@bot.tree.error
-async def on_app_command_error(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
-    print(error)
-
-    error_message = "Uh oh... \**grunts*\* something's not right here... \**farts*\*"
-    try:
-        await interaction.response.send_message(error_message, ephemeral=True)
-    except discord.errors.InteractionResponded:
-        await interaction.edit_original_response(content=error_message, embed=None, view=None)
-
-if __name__ == '__main__':
-    bot.run()
