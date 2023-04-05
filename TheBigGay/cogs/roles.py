@@ -209,7 +209,7 @@ class Roles(commands.Cog):
             for member in innocent:
                 await member.edit(deafen=True)
 
-            await play(self.bot, channel=after.channel, url="https://youtu.be/6Joyj0dmkug", name="windows.mp3", wait=5)
+            await play(self.bot, channel=after.channel, name="windows.mp3", wait=True)
 
             for member in innocent:
                 await member.edit(deafen=False)
