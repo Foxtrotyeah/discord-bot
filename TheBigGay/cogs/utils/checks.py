@@ -41,17 +41,6 @@ def is_valid_bet(channel: discord.TextChannel, member: discord.Member, amt: int)
     return True
 
 
-def is_gambling_category_pred(ctx: commands.Context) -> bool:
-        if ctx.channel.category.name != "Gambling":
-            raise WrongChannel()
-        else:
-            return True
-
-
-def is_gambling_category():
-    return commands.check(is_gambling_category_pred)
-
-
 # Check eligibility status for a subsidy
 def check_subsidy():
     def predicate(interaction: discord.Interaction) -> bool:
