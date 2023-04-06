@@ -54,22 +54,11 @@ class Gambling(commands.Cog):
     # No messages except for commands in the Gambling category.
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        ctx = await self.bot.get_context(message)
-
         if message.author.bot:
             return            
 
         if message.channel.category.name == 'Gambling':
-            # Check if message is actually a gambling/economy command being called
-            if ctx.command:
-                if ctx.command.cog_name in ('Gambling', 'Economy') or ctx.command.name == 'help':
-                    return
-
             await message.delete()
-
-    # TODO take out
-    async def cog_check(self, ctx: commands.Context) -> bool:
-        return checks.is_gambling_category_pred(ctx)
 
     @app_commands.command(description="Check who has won the most money in each of the gambling games.")
     async def leaderboard(self, interaction: discord.Interaction):
