@@ -18,8 +18,6 @@ command_prefix = '.'
 
 description = "Hey there~ I'm a bot written by my daddy, Foxtrot."
 
-help_command = commands.DefaultHelpCommand(no_category="Default Commands", verify_checks=False)
-
 # Right now the bot is set to admin permissions (permissions=8).
 intents = discord.Intents(
     guilds=True,
@@ -44,9 +42,9 @@ extensions = (
 
 
 class GaybotCommandTree(app_commands.CommandTree):
-    async def on_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
-        if isinstance(error, (checks.WrongChannel, checks.MinimumBet, app_commands.CheckFailure, app_commands.CommandInvokeError)):
-            error_message = error
+    async def on_error(self, interaction: discord.Interaction, exception: discord.app_commands.AppCommandError):
+        if isinstance(exception, (checks.WrongChannel, checks.MinimumBet, app_commands.CheckFailure, app_commands.CommandInvokeError)):
+            error_message = exception
         else:
             error_message = "Uh oh... \**grunts*\* something's not right here... \**farts*\*"
 
@@ -65,7 +63,7 @@ class GayBot(commands.AutoShardedBot):
             command_prefix=command_prefix,
             description=description,
             intents=intents,
-            help_command=help_command,
+            help_command=None,
             tree_cls=GaybotCommandTree
         )
 
@@ -80,6 +78,10 @@ class GayBot(commands.AutoShardedBot):
             except Exception as e:
                 print(f"Failed to load extension {extension}.")
                 print(e)
+
+    async def on_command_error(self, ctx: commands.Context, exception: commands.CommandError):
+        if isinstance(exception, commands.errors.CommandNotFound):
+            return
 
     async def on_ready(self):
         await self.tree.sync()
