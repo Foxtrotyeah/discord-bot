@@ -2,9 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import requests
-import asyncio
 import os
-from collections import Counter
 
 from cogs.utils import checks
 
@@ -71,10 +69,6 @@ class GayBot(commands.AutoShardedBot):
             tree_cls=GaybotCommandTree
         )
 
-        self.spam_control = commands.CooldownMapping.from_cooldown(1, 3.0, commands.BucketType.user)
-
-        self._spam_counter = Counter()
-
     async def setup_hook(self):
         self.app_info = await self.application_info()
         self.owner_id = self.app_info.owner.id
@@ -86,37 +80,6 @@ class GayBot(commands.AutoShardedBot):
             except Exception as e:
                 print(f"Failed to load extension {extension}.")
                 print(e)
-    
-    async def process_commands(self, message: discord.Message):
-        ctx = await self.get_context(message)
-
-        if message.author.bot or not ctx.command:
-            return
-
-        # Only invoke gambling and economy commands in the Gambling category
-        if message.channel.category.name == 'Gambling' and ctx.command.name != 'help':
-            if ctx.command.cog_name not in ('Gambling', 'Economy'):
-                return 
-
-        # Spam control
-        bucket = self.spam_control.get_bucket(message)
-        retry_after = bucket.update_rate_limit()
-
-        author_id = message.author.id
-
-        if retry_after and author_id != self.owner_id:
-            await message.delete()
-
-            self._spam_counter[author_id] += 1
-            if self._spam_counter[author_id] == 1:
-                await ctx.send(f"Spam. Try again in {round(retry_after)} seconds.")
-
-            return
-        else:
-            self._spam_counter.pop(author_id, None)
-
-        # Continue command execution
-        await self.invoke(ctx)
 
     async def on_ready(self):
         await self.tree.sync()
