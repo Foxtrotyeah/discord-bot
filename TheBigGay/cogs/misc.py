@@ -29,13 +29,13 @@ class Miscellaneous(commands.Cog):
 
     @app_commands.command(description="Says hi, but gayer")
     async def hello(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f"{interaction.user.mention} Heyyy ;)")
+        await interaction.response.send_message("Heyyy ;)")
 
     @app_commands.command(description="Roast a user with a preset insult from The Big Gay")
     @app_commands.describe(member="the member to roast")
     async def roast(self, interaction: discord.Interaction, member: discord.Member):
         if member.bot:
-            return await interaction.response.send_message(f"{interaction.user.mention} No one roasts me, twat.")
+            return await interaction.response.send_message("No one roasts me, twat.", ephemeral=True)
 
         with open("./assets/text.json", encoding="utf8", errors="ignore") as file:
             selected = random.choice(json.load(file)["roasts"]).format(member.mention)
@@ -54,10 +54,10 @@ class Miscellaneous(commands.Cog):
             # App commands don't get the same member objects as normal commands...
             member = interaction.guild.get_member(member.id)
             if member.bot:
-                return await interaction.response.send_message("Bitch, I'm always fabulous.")
+                return await interaction.response.send_message("Bitch, I'm always fabulous.", ephemeral=True)
             if member.status == discord.Status.offline:
                 return await interaction.response.send_message(f"I can't read minds if they aren't on online. "
-                                      f"I'm sure {member.mention} is doing fine!")
+                                      f"I'm sure {member.mention} is doing fine!", ephemeral=True)
             vibe = random.randint(0, 100)
             message = "{} Vibe levels at {}%.".format(member.mention, vibe)
             if vibe < 15:
