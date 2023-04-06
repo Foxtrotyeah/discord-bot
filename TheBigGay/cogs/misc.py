@@ -123,29 +123,11 @@ class Miscellaneous(commands.Cog):
     
         await interaction.response.send_modal(modal)
 
-    # TODO move this to a context menu, maybe keep as a command...
-    @commands.command(description="Translate using Papago")
-    async def translate(self, ctx: commands.Context, *, text: str):
+    @app_commands.command(description="Translate using Papago")
+    async def translate(self, interaction: discord.Interaction, *, text: str):
         translation, language = papago.translate(text)
 
-        await ctx.send(f'Translated from **{language}**: "{translation}"')
-
-    # @commands.hybrid_command(description="Test function")
-    # @app_commands.default_permissions(administrator=True)
-    # async def test(self, ctx: commands.Context, member: discord.Member):
-    #     ctx_member = ctx.guild.get_member(member.id)
-    #     ctx_interaction = ctx.interaction.user.status
-    #     print(member.status, ctx_member.status, ctx_interaction)
-    #     await ctx.send(f"Their status: {member.status}")
-
-    @app_commands.command()
-    @app_commands.default_permissions(administrator=True)
-    async def test(self, interaction: discord.Interaction):
-        choices = [
-            app_commands.Choice(name="hello", value="hello"), 
-            app_commands.Choice(name="goodbye", value="goodbye")
-        ]
-        await interaction.response.autocomplete(choices)
+        await interaction.response.send_message(f'Translated from **{language}**: "{translation}"')
 
     @app_commands.command(description="Sync command tree")
     @app_commands.default_permissions(administrator=True)
