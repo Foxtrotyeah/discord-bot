@@ -81,15 +81,21 @@ class Roles(commands.Cog):
     pronouns = {
         "❤": "she/her",
         "💙": "he/him",
-        "💜": "they/them"
+        "💜": "they/them",
+        "color": discord.Color.teal,
+        "title": "Pronouns"
     }
     notifications = {
-        "🤡": ("Receive notifications from people wanting to play games", "Game Notified")
+        "🤡": ("Receive notifications from people wanting to play games", "Game Notified"),
+        "color": discord.Color.magenta,
+        "title": "Notifications"
     }
     funny = {
         "👶": "casual",
         "👺": "gremlin",
-        "💩": "shitter"
+        "💩": "shitter",
+        "color": discord.Color.green,
+        "title": "Funny Roles"
     }
     needed_roles = {
         "Banished": banish_role,
@@ -155,33 +161,21 @@ class Roles(commands.Cog):
                 )
             }
         )
-                                                    
-        description = str()
-        for key, value in self.pronouns.items():
-            description += f"{key} {value}\n"
-        embed = discord.Embed(title="Pronouns", description=description, color=discord.Color.teal())
-        pronoun_message = await roles_channel.send(embed=embed)
 
-        for key, value in self.pronouns.items():
-            await pronoun_message.add_reaction(key)
+        for emoji_list in [self.pronouns, self.notifications, self.funny]:
+            description = str()
+            for key, value in emoji_list.items():
+                if len(key) > 1:
+                    continue
+                if type(value) is tuple:
+                    value = value[-1]
+                description += f"{key}, {value}\n"
+            embed = discord.Embed(title=emoji_list["title"], description=description, color=emoji_list["color"]())
+            message = await roles_channel.send(embed=embed)
 
-        description = str()
-        for key, value in self.notifications.items():
-            description += f"{key} {value[0]}\n"
-        embed = discord.Embed(title="Notifications", description=description, color=discord.Color.magenta())
-        notif_message = await roles_channel.send(embed=embed)
-
-        for key, value in self.notifications.items():
-            await notif_message.add_reaction(key)
-
-        description = str()
-        for key, value in self.funny.items():
-            description += f"{key} {value}\n"
-        embed = discord.Embed(title="Funny Roles", description=description, color=discord.Color.green())
-        funny_message = await roles_channel.send(embed=embed)
-
-        for key, value in self.funny.items():
-            await funny_message.add_reaction(key)
+            for key, value in emoji_list.items():
+                if len(key) == 1:
+                    await message.add_reaction(key)
 
     # TODO idk what to actually do with this
     @commands.Cog.listener()
@@ -239,17 +233,15 @@ class Roles(commands.Cog):
 
         guild = self.bot.get_guild(payload.guild_id)
 
-        if str(payload.emoji) in self.pronouns:
-            role = discord.utils.get(guild.roles, name=self.pronouns[str(payload.emoji)])
-            await payload.member.add_roles(role)
+        for emoji_list in [self.pronouns, self.notifications, self.funny]:
+            if str(payload.emoji) in emoji_list:
+                role_name = emoji_list[str(payload.emoji)]
+                if type(role_name) is tuple: 
+                    role_name = role_name[-1]
 
-        elif str(payload.emoji) in self.notifications:
-            role = discord.utils.get(guild.roles, name=self.notifications[str(payload.emoji)][1])
-            await payload.member.add_roles(role)
-
-        elif str(payload.emoji) in self.funny:
-            role = discord.utils.get(guild.roles, name=self.funny[str(payload.emoji)])
-            await payload.member.add_roles(role)
+                role = discord.utils.get(guild.roles, name=role_name)
+                await payload.member.add_roles(role)
+                return
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
@@ -261,18 +253,16 @@ class Roles(commands.Cog):
         channel = self.bot.get_channel(payload.channel_id)
         if channel.name != "get-your-roles":
             return
+        
+        for emoji_list in [self.pronouns, self.notifications, self.funny]:
+            if str(payload.emoji) in emoji_list:
+                role_name = emoji_list[str(payload.emoji)]
+                if type(role_name) is tuple: 
+                    role_name = role_name[-1]
 
-        if str(payload.emoji) in self.pronouns:
-            role = discord.utils.get(guild.roles, name=self.pronouns[str(payload.emoji)])
-            await member.remove_roles(role)
-
-        elif str(payload.emoji) in self.notifications:
-            role = discord.utils.get(guild.roles, name=self.notifications[str(payload.emoji)][1])
-            await member.remove_roles(role)
-
-        elif str(payload.emoji) in self.funny:
-            role = discord.utils.get(guild.roles, name=self.funny[str(payload.emoji)])
-            await member.remove_roles(role)
+                role = discord.utils.get(guild.roles, name=role_name)
+                await member.remove_roles(role)
+                return
 
 
 async def setup(bot):
