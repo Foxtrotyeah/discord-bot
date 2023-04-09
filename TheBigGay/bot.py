@@ -32,8 +32,9 @@ intents = discord.Intents(
 )
 
 extensions = (
-    'gambling',
+    'context',
     'economy',
+    'gambling',
     'misc',
     'polls',
     'roles',
