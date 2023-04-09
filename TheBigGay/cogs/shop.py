@@ -5,7 +5,6 @@ from discord.ui import View, Select, UserSelect
 import asyncio
 
 from .utils import mysql
-from .utils import checks
 
 
 class Shop(commands.Cog, command_attrs=dict(hidden=True)):
@@ -14,7 +13,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.author.bot or message.content.startswith('.'):
+        if message.author.bot:
             return
 
         if str(message.channel.type) == "private":
@@ -66,7 +65,13 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
                 emoji="👨‍👦",
                 description="*10,000 gb*: Receive the permanent title of 'Step Bro'",
                 value="step_bro"
-            ), 10000, self.step_bro)
+            ), 10000, self.step_bro),
+            "private_room": (discord.SelectOption(
+                label="Private Room",
+                emoji="🔒",
+                description="*(Step Bro only) 500 gb*: Get your own private betting thread",
+                value="private_room"
+            ), 50000, self.private_room)
         }
 
         view = View()
@@ -115,7 +120,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
 
                 await interaction.response.edit_message(view=view)
 
-            elif value in ("admin", "step_bro"):
+            elif value in ("admin", "step_bro", "private_room"):
                 await interaction.response.edit_message(view=view)
                 await option[2](interaction)
 
@@ -227,6 +232,22 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
         await member.add_roles(role)
         await interaction.followup.send("Welcome to the family, Step Bro! ;)")
 
+    async def private_room(self, interaction: discord.Interaction):
+        member = interaction.user
+        channel = discord.utils.get(interaction.guild.channels, name="main-hall")
+
+        if "Step Bro" not in [role.name for role in member.roles]:
+            return await interaction.followup.send("Private rooms are only for my Step Bros.", ephemeral=True)
+        elif f"{member.name}'s Room" in [thread.name for thread in interaction.guild.threads]:
+            thread = discord.utils.get(interaction.guild.threads, name=f"{member.name}'s Room")
+            return await interaction.followup.send(f"You already have a private room open: {thread.mention}", ephemeral=True)
+        
+        mysql.update_balance(member, -500)
+        
+        thread = await channel.create_thread(name=f"{member.name}'s Room", auto_archive_duration=10080)
+        await thread.leave()
+        await thread.add_user(member)
+        await interaction.followup.send("Enjoy your private gambling experience!", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Shop(bot))
