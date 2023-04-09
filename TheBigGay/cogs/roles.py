@@ -177,17 +177,6 @@ class Roles(commands.Cog):
                 if len(key) == 1:
                     await message.add_reaction(key)
 
-    # TODO idk what to actually do with this
-    @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
-        if message.author.bot:
-            return
-        # 'Step Bro' role functionality
-        roles = [x.name for x in message.author.roles]
-        if "Step Bro" in roles:
-            ctx = await self.bot.get_context(message)
-            await ctx.send("*sure thing, step bro*")
-
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         if after.channel is None:
