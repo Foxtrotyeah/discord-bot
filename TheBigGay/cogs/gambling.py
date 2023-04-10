@@ -7,6 +7,7 @@ from discord.ext import commands
 
 from .utils import mysql
 from .utils import checks
+from .utils.connect4 import Connect4
 
 
 class Gambling(commands.Cog):
@@ -563,8 +564,8 @@ class Gambling(commands.Cog):
             # Reset options
             available = options[:-1]
 
-            await first_reaction.remove(interaction.user)
-            await second_reaction.remove(interaction.user)
+            await first_reaction.remove(user)
+            await second_reaction.remove(user)
 
         # Loop broken by either stopping or winning
         for i in range(len(bombs)):
@@ -800,8 +801,6 @@ class Gambling(commands.Cog):
         embed.add_field(name="Balance:", value=value, inline=False)
         await interaction.edit_original_response(embed=embed)
 
-
-    # TODO This is much more complicated than I anticipated. Actual board and logic will required a lot of work.
     @app_commands.command(description="(2 players) Connect 4")
     @app_commands.describe(member="player 2", bet="your bet in gaybucks")
     async def connect4(self, interaction: discord.Interaction, member: discord.Member, bet: int):
@@ -810,37 +809,23 @@ class Gambling(commands.Cog):
         if member.id == interaction.user.id:
             return await interaction.response.send_message("You can't just play with yourself in front of everyone!", ephemeral=True, delete_after=5)
 
-        board = [
-            "``` -----------------------------------", 
-            "| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |", 
-            " -----------------------------------", 
-            "| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |", 
-            " -----------------------------------", 
-            "| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |", 
-            " -----------------------------------", 
-            "| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |", 
-            " -----------------------------------", 
-            "| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |",
-            " -----------------------------------", 
-            "| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |", 
-            " -----------------------------------```"
-        ]
-
         yes_no = ["❌", "✅"]
         options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣"]
 
         player1 = interaction.user
-        players = [player1]
+        players = [(player1, 1)]
 
 
+        # TODO Create the algorithm for this
         if member.bot:
-            description = (f"So, you've chosen death. I'll let you go first--not like it'll matter.")
+            # description = (f"So, you've chosen death. I'll let you go first--not like it'll matter.")
+            return await interaction.response.send_message("You cannot challenge the master. Yet...", ephemeral=True)
         else:
-            description = (f"{member.mention}, do you accept the challenge? React to this message accordingly.")
+            description = (f"{member.mention}, {player1.mention} challenges you to Connect 4 with a **{bet}GB** bet. Do you accept? React to this message accordingly.")
 
         embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.green())
         await interaction.response.send_message(embed=embed)
-        message = interaction.original_response()
+        message = await interaction.original_response()
 
         if not member.bot:
             for reaction in yes_no:
@@ -848,7 +833,7 @@ class Gambling(commands.Cog):
 
             def react_check(reaction: discord.Reaction, user: discord.User):
                 if user.id == member.id and reaction.message.id == message.id and str(reaction) in yes_no:
-                    return checks.is_valid_bet(reaction.channel, user, bet)
+                    return checks.is_valid_bet(interaction.channel, user, bet)
 
             try:
                 reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
@@ -862,21 +847,29 @@ class Gambling(commands.Cog):
 
             await message.clear_reactions()
 
-            players.append(member)
+            players.append((member, 2))
 
-            description = (
-                f"{member.mention}, you start."
-                f"\n \nPlayers: {players[0].mention} and {players[1].mention}"
-            )
+            first_player = random.choice(players)
+            if players[0] != first_player:
+                players[1], players[0] = players[0], players[1]
 
-            embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.green())
-            await message.edit(embed=embed)
+            embed.description = f"{players[0][0].mention}, you start."
+            embed.add_field(
+                name="\u200b", 
+                value=(
+                    "Players: \n"
+                    f"{players[0][0].mention}: {Connect4.markers[players[0][1]]}" 
+                    f"\n{players[1][0].mention}: {Connect4.markers[players[1][1]]}"
+                ), 
+                inline=False)
         else:
-            players.append(self.bot)
+            players.append((self.bot, 2))
 
             # TODO more here
 
-        embed.add_field(name="\u200b", value=board, inline=False)
+        game = Connect4()
+
+        embed.add_field(name="\u200b", value=game.draw_board(), inline=False)
         await interaction.edit_original_response(embed=embed)
 
         for option in options:
@@ -884,42 +877,73 @@ class Gambling(commands.Cog):
 
         def react_check(reaction: discord.Reaction, user: discord.User):
             nonlocal players
-            return user.id == players[0].id and reaction.message.id == message.id and str(reaction) in options
+            return user.id == players[0][0].id and reaction.message.id == message.id and str(reaction) in options
 
 
         timeout = False
 
         # Game loop
         while True:
-            if not member.bot:
+            if not players[0][0].bot:
                 try:
                     reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
                 except asyncio.TimeoutError:
                     timeout = True
                     break 
 
+                column = options.index(str(reaction))
 
+            remove = game.update_board(column, players[0][1])
+
+            if remove:
+                await message.clear_reaction(reaction)
+
+            embed.set_field_at(-1, name="\u200b", value=game.draw_board(), inline=False)
+            
+            if game.check_winner(players[0][1]):
+                winner = players[0][0]
+                loser = players[1][0]
+                break
 
             players[1], players[0] = players[0], players[1]
 
-        # players[0] timed out.
+            embed.description = f"{players[0][0].mention}, it's your turn."
+            await interaction.edit_original_response(embed=embed)
+
+            await reaction.remove(user)
+
+        # players[0][0] timed out.
         if timeout:
-            player2_bal = mysql.update_balance(players[1], bet * 2)
-            player1_bal = mysql.update_balance(players[0], -bet)
+            player2_bal = mysql.update_balance(players[1][0], bet * 2)
+            player1_bal = mysql.update_balance(players[0][0], -bet)
             mysql.add_to_lottery(self.bot.application_id, interaction.guild, bet)
 
-            embed.description = f"Winner! Kinda. {players[0].mention} has forfeited (timeout)."
+            embed.description = f"Winner! Kinda. {players[0][0].mention} has forfeited (timeout)."
             embed.add_field(
                 name=f"Balances",
                 value=(
-                    f"{players[1].mention}: {player2_bal}GB\n"
-                    f"{players[0].mention}: {player1_bal}GB"
+                    f"{players[1][0].mention}: {player2_bal}GB\n"
+                    f"{players[0][0].mention}: {player1_bal}GB"
                 ),
-                    inline=False
-                )
+                inline=False
+            )
             return await interaction.followup.send(embed=embed)
+        
+        # players[0][0] wins
+        winner_balance = mysql.update_balance(winner, bet)
+        loser_balance = mysql.update_balance(loser, -bet)
 
-                
+        embed.description = f"{players[0][0].mention} wins!"
+        embed.set_field_at(
+            0, 
+            name=f"Balances", 
+            value=(
+                f"{winner.mention}: {winner_balance}GB\n"
+                f"{loser.mention}: {loser_balance}GB"
+            ),
+            inline=False
+        )
+        await interaction.edit_original_response(embed=embed)             
 
 
 async def setup(bot):
