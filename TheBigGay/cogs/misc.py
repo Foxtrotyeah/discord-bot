@@ -24,6 +24,7 @@ class Miscellaneous(commands.Cog):
         await interaction.followup.send("Deleted {} message(s)".format(len(deleted)))
 
     @app_commands.command(description="Gives the latency between the bot and server in ms")
+    @app_commands.default_permissions(administrator=True)
     async def ping(self, interaction: discord.Interaction):
         await interaction.response.send_message(f"Pong! My latency right now is {round(self.bot.latency * 1000)}ms")
 
@@ -102,6 +103,7 @@ class Miscellaneous(commands.Cog):
         return await interaction.response.send_message(f"I choose **{random.choice(choices)}**!")
 
     @app_commands.command(description="The bot's local time")
+    @app_commands.default_permissions(administrator=True)
     async def time(self, interaction: discord.Interaction):
         timezone = pytz.timezone("US/Mountain")
         await interaction.response.send_message("MST time: {}".format(datetime.now(timezone)))
