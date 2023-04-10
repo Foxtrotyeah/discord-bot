@@ -27,6 +27,7 @@ class Context(commands.Cog):
 
         await interaction.response.send_message(f'Translated from **{language}**: "{translation}"')
 
+    @app_commands.default_permissions(manage_messages=True)
     async def purge(self, interaction: discord.Interaction, message: discord.Message):
         await interaction.response.defer(thinking=True)
 
