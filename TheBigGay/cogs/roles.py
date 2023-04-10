@@ -11,13 +11,6 @@ async def banish_role(guild: discord.Guild):
         await category.set_permissions(role, connect=False)
 
 
-# creates the 'bitch' role
-async def bitch_role(guild: discord.Guild):
-    role = await guild.create_role(name="Bitch", hoist=True)
-    for category in guild.categories:
-        await category.set_permissions(role, speak=False)
-
-
 # creates the 'admin lite' role
 async def adminlite_role(guild: discord.Guild):
     perms = discord.Permissions(1110751554672)
@@ -99,7 +92,6 @@ class Roles(commands.Cog):
     }
     needed_roles = {
         "Banished": banish_role,
-        "Bitch": bitch_role,
         "Admin Lite": adminlite_role,
         "Windows": windows_role,
         "Daddy": daddy_role,
@@ -179,7 +171,7 @@ class Roles(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-        if after.channel is None:
+        if after.channel is None or before.mute != after.mute:
             return
 
         roles = [x.name for x in member.roles]
@@ -203,13 +195,6 @@ class Roles(commands.Cog):
                     return await member.move_to(None)
                 except Exception as e:
                     print(e)
-
-        if "Bitch" not in roles:
-            if member.voice.mute:
-                await member.edit(mute=False)
-        # If the member has the bitch role but isn't muted yet
-        elif not member.voice.mute:
-            await member.edit(mute=True)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):

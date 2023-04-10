@@ -98,47 +98,6 @@ class Polls(commands.Cog):
         await reg_poll.send()
         await interaction.edit_original_response(embed=reg_poll.embed)
 
-
-    @app_commands.command(description="Vote on if a user is bitching too much")
-    @app_commands.describe(member="the member to accuse")
-    async def bitchalert(self, interaction: discord.Interaction, member: discord.Member):
-        # App commands don't get the same member objects as normal commands...
-        member = interaction.guild.get_member(member.id)
-
-        if member.bot:
-            return await interaction.response.send_message("Nice try, bitch.", ephemeral=True)
-        if member.status == discord.Status.offline:
-            return await interaction.response.send_message(f"Chill out! {member.mention} isn't even online.", ephemeral=True)
-
-        description = f"Is {member.mention} being a little bitch?"
-        bitch_poll = Poll(interaction, "Bitch Alert", description)
-        result = await bitch_poll.send()
-
-        if result == "👍":
-            role = discord.utils.get(interaction.guild.roles, name="Bitch")
-            await member.add_roles(role)
-            try:
-                await member.edit(mute=True)
-            except discord.errors.HTTPException:
-                pass
-            except Exception as e:
-                print("Error muting member for bitchalert: ", e)
-
-            await interaction.followup.send(f"The people have spoken.\n{member.mention} Begone, THOT!")
-
-            await asyncio.sleep(60)
-
-            await member.remove_roles(role)
-            try:
-                await member.edit(mute=False)
-            except discord.errors.HTTPException:
-                pass
-            except Exception as e:
-                print("Error unmuting member for bitchalert: ", e)
-
-        else:
-            await interaction.followup.send(f"{member.mention}, you just keep on bitching. All good here.")
-
     # TODO Make a banish command for the shop that does this without the poll?
     # creates a poll for sending a user to a secondary channel, adding the 'banished' role
     @app_commands.command(description="Vote to send a user to The Shadow Realm")
