@@ -178,13 +178,8 @@ class Gambling(commands.Cog):
             return await interaction.edit_original_response(embed=embed)
 
         if str(reaction) == "❌":
-            embed = discord.Embed(
-                title="Card Cutting",
-                description=(
-                    f"{player2.mention} has declined the bet."
-                ),
-                color=discord.Color.red()
-            )
+            embed.description = f"{player2.mention} has declined the bet."
+            embed.color = discord.Color.red()
             return await interaction.edit_original_response(embed=embed)
 
         pot = bet * 2
@@ -807,11 +802,13 @@ class Gambling(commands.Cog):
 
 
     # TODO This is much more complicated than I anticipated. Actual board and logic will required a lot of work.
-    @commands.command(hidden=True)
-    async def connect4(self, ctx: commands.Context, member: discord.Member, bet: int):
-        checks.is_valid_bet(ctx, ctx.author, bet)
+    @app_commands.command(description="(2 players) Connect 4")
+    @app_commands.describe(member="player 2", bet="your bet in gaybucks")
+    async def connect4(self, interaction: discord.Interaction, member: discord.Member, bet: int):
+        checks.is_valid_bet(interaction.channel, interaction.user, bet)
 
-        # if member.id == ctx.author.id:
+        if member.id == interaction.user.id:
+            return await interaction.response.send_message("You can't just play with yourself in front of everyone!", ephemeral=True, delete_after=5)
 
         board = [
             "``` -----------------------------------", 
@@ -832,22 +829,18 @@ class Gambling(commands.Cog):
         yes_no = ["❌", "✅"]
         options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣"]
 
-        players = [ctx.author]
+        player1 = interaction.user
+        players = [player1]
 
 
         if member.bot:
-            description = (
-                f"So, you've chosen death. I'll let you go first--not like it'll matter."
-                f"\n \nUser: {ctx.author.mention}"
-            )
+            description = (f"So, you've chosen death. I'll let you go first--not like it'll matter.")
         else:
-            description = (
-                f"{member.mention} Do you accept the challenge? React to this message accordingly."
-                f"\n \nUser: {ctx.author.mention}"
-            )
+            description = (f"{member.mention}, do you accept the challenge? React to this message accordingly.")
 
         embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.green())
-        message = await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
+        message = interaction.original_response()
 
         if not member.bot:
             for reaction in yes_no:
@@ -855,15 +848,17 @@ class Gambling(commands.Cog):
 
             def react_check(reaction: discord.Reaction, user: discord.User):
                 if user.id == member.id and reaction.message.id == message.id and str(reaction) in yes_no:
-                    return checks.is_valid_bet(ctx, user, bet)
+                    return checks.is_valid_bet(reaction.channel, user, bet)
 
             try:
                 reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
             except asyncio.TimeoutError:
-                return await message.delete()
+                return await interaction.delete_original_response()
 
             if str(reaction) == "❌":
-                return await message.delete()
+                embed.description = f"{member.mention} has declined the bet."
+                embed.color = discord.Color.red()
+                return await interaction.edit_original_response(embed=embed)
 
             await message.clear_reactions()
 
@@ -871,16 +866,21 @@ class Gambling(commands.Cog):
 
             description = (
                 f"{member.mention}, you start."
-                f"\n \nUsers: {ctx.author.mention} and {member.mention}"
+                f"\n \nPlayers: {players[0].mention} and {players[1].mention}"
             )
 
             embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.green())
             await message.edit(embed=embed)
+        else:
+            players.append(self.bot)
 
-        board_msg = await ctx.send(board)
+            # TODO more here
+
+        embed.add_field(name="\u200b", value=board, inline=False)
+        await interaction.edit_original_response(embed=embed)
 
         for option in options:
-            await board_msg.add_reaction(option)
+            await message.add_reaction(option)
 
         def react_check(reaction: discord.Reaction, user: discord.User):
             nonlocal players
@@ -889,10 +889,9 @@ class Gambling(commands.Cog):
 
         timeout = False
 
+        # Game loop
         while True:
-            if member.bot:
-                return
-            else:
+            if not member.bot:
                 try:
                     reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
                 except asyncio.TimeoutError:
@@ -907,19 +906,18 @@ class Gambling(commands.Cog):
         if timeout:
             player2_bal = mysql.update_balance(players[1], bet * 2)
             player1_bal = mysql.update_balance(players[0], -bet)
-            mysql.add_to_lottery(self.bot.application_id, ctx.guild, bet)
+            mysql.add_to_lottery(self.bot.application_id, interaction.guild, bet)
 
-            description = f"Winner! Kinda. {member.mention} has forfeited (timeout)."
-            embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.green())
+            embed.description = f"Winner! Kinda. {players[0].mention} has forfeited (timeout)."
             embed.add_field(
                 name=f"Balances",
                 value=(
-                    f"{players[1]}: {player2_bal}GB\n"
-                    f"{players[0]}: {player1_bal}GB"
+                    f"{players[1].mention}: {player2_bal}GB\n"
+                    f"{players[0].mention}: {player1_bal}GB"
                 ),
                     inline=False
                 )
-            return await ctx.send(embed=embed)
+            return await interaction.followup.send(embed=embed)
 
                 
 
