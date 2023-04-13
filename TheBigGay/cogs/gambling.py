@@ -7,7 +7,7 @@ from discord.ext import commands
 
 from .utils import mysql
 from .utils import checks
-from .utils.connect4 import Connect4
+from .utils.connect4 import Connect4, Solver
 
 
 class Gambling(commands.Cog):
@@ -806,8 +806,8 @@ class Gambling(commands.Cog):
     async def connect4(self, interaction: discord.Interaction, member: discord.Member, bet: int):
         checks.is_valid_bet(interaction.channel, interaction.user, bet)
 
-        if member.id == interaction.user.id:
-            return await interaction.response.send_message("You can't just play with yourself in front of everyone!", ephemeral=True, delete_after=5)
+        # if member.id == interaction.user.id:
+        #     return await interaction.response.send_message("You can't just play with yourself in front of everyone!", ephemeral=True, delete_after=5)
 
         yes_no = ["❌", "✅"]
         options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣"]
@@ -818,8 +818,8 @@ class Gambling(commands.Cog):
 
         # TODO Create the algorithm for this
         if member.bot:
-            # description = (f"So, you've chosen death. I'll let you go first--not like it'll matter.")
-            return await interaction.response.send_message("You cannot challenge the master. Yet...", ephemeral=True)
+            description = (f"So, you've chosen death. I'll let you go first--not like it'll matter.")
+            # return await interaction.response.send_message("You cannot challenge the master. Yet...", ephemeral=True)
         else:
             description = (f"{member.mention}, {player1.mention} challenges you to Connect 4 with a **{bet}GB** bet. Do you accept? React to this message accordingly.")
 
@@ -854,18 +854,20 @@ class Gambling(commands.Cog):
                 players[1], players[0] = players[0], players[1]
 
             embed.description = f"{players[0][0].mention}, you start."
-            embed.add_field(
-                name="\u200b", 
-                value=(
-                    "Players: \n"
-                    f"{players[0][0].mention}: {Connect4.markers[players[0][1]]}" 
-                    f"\n{players[1][0].mention}: {Connect4.markers[players[1][1]]}"
-                ), 
-                inline=False)
-        else:
-            players.append((self.bot, 2))
 
-            # TODO more here
+        else:
+            players.append((self.bot.user, 2))
+
+            bot = Solver(2)
+
+        embed.add_field(
+            name="\u200b", 
+            value=(
+                "Players: \n"
+                f"{players[0][0].mention}: {Connect4.markers[players[0][1]]}" 
+                f"\n{players[1][0].mention}: {Connect4.markers[players[1][1]]}"
+            ), 
+            inline=False)
 
         game = Connect4()
 
@@ -876,15 +878,28 @@ class Gambling(commands.Cog):
             await message.add_reaction(option)
 
         def react_check(reaction: discord.Reaction, user: discord.User):
-            nonlocal players
-            return user.id == players[0][0].id and reaction.message.id == message.id and str(reaction) in options
+            nonlocal players, game
+            return user.id == players[0][0].id and reaction.message.id == message.id and str(reaction) in [options[column] for column in game.available_columns]
 
 
         timeout = False
+        optimal_count = 0
 
         # Game loop
         while True:
-            if not players[0][0].bot:
+            if players[0][0].bot:
+                # TODO Good? Idk
+                async with interaction.channel.typing():
+                    column = bot.find_solution(game, players[0][1], 7)[0]
+
+            else:
+                optimal = bot.find_solution(game, players[0][1], 5)
+
+                # TODO take out
+                print("Optimal: ", optimal)
+                if optimal[1] < 0:
+                    print(game.board)
+
                 try:
                     reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
                 except asyncio.TimeoutError:
@@ -893,24 +908,39 @@ class Gambling(commands.Cog):
 
                 column = options.index(str(reaction))
 
-            remove = game.update_board(column, players[0][1])
+                await reaction.remove(user)
 
-            if remove:
-                await message.clear_reaction(reaction)
+                if column == optimal[0]:
+                    optimal_count += 1
+
+            game.update_board(game.board, column, players[0][1])
 
             embed.set_field_at(-1, name="\u200b", value=game.draw_board(), inline=False)
             
-            if game.check_winner(players[0][1]):
+            if game.check_winner(game.board, players[0][1]):
                 winner = players[0][0]
                 loser = players[1][0]
                 break
 
             players[1], players[0] = players[0], players[1]
 
-            embed.description = f"{players[0][0].mention}, it's your turn."
+            if not players[0][0].bot:
+                embed.description = f"{players[0][0].mention}, it's your turn."
+                if optimal_count > 8:
+                    embed.description += " You seem to be playing *very* well, by the way..."
+            else:
+                embed.description = f"My turn. Let me think..."
+
             await interaction.edit_original_response(embed=embed)
 
-            await reaction.remove(user)
+        # TODO Finish this
+        if member.bot:    
+            if optimal_count >= 10:
+                embed.description = "I don't really like playing with cheaters."
+            else:
+                embed.description = "I win. 💁‍♂️"
+            await interaction.edit_original_response(embed=embed)
+            return
 
         # players[0][0] timed out.
         if timeout:
