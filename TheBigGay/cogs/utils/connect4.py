@@ -80,9 +80,9 @@ class Connect4():
 
 
 class Solver(Connect4):
-    def __init__(self, piece: int):
-        self.piece = piece
-        self.opponent_piece = int(2 / piece)
+    def __init__(self):
+        self.piece = int()
+        self.opponent_piece = int()
 
         super().__init__()
 
