@@ -806,18 +806,18 @@ class Gambling(commands.Cog):
     async def connect4(self, interaction: discord.Interaction, member: discord.Member, bet: int):
         checks.is_valid_bet(interaction.channel, interaction.user, bet)
 
-        # if member.id == interaction.user.id:
-        #     return await interaction.response.send_message("You can't just play with yourself in front of everyone!", ephemeral=True, delete_after=5)
+        if member.id == interaction.user.id:
+            return await interaction.response.send_message("You can't just play with yourself in front of everyone!", ephemeral=True, delete_after=5)
 
         yes_no = ["❌", "✅"]
         options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣"]
 
-        players = [[interaction.user, 1, 0]]
+        players = [[interaction.user, 1]]
 
         if member.bot:
-            description = (f"Let's see what you've got. You go first--not like it'll matter.")
+            description = (f"Oh? Keep your money, let's get this over with. You go first--not like it'll matter.")
 
-            players.append([self.bot.user, 2, 100])
+            players.append([self.bot.user, 2])
         else:
             description = (f"{member.mention}, you have been challenged to Connect 4 against {interaction.user.mention} with a **{bet}GB** bet. Do you accept?")
 
@@ -845,7 +845,7 @@ class Gambling(commands.Cog):
 
             await message.clear_reactions()
 
-            players.append((member, 2))
+            players.append([member, 2])
 
             first_player = random.choice(players)
             if players[0] != first_player:
@@ -894,10 +894,6 @@ class Gambling(commands.Cog):
 
                 column = options.index(str(reaction))
 
-                optimal = bot.find_solution(game, players[0][1], 5)[1]
-                # players[0][2] += (optimal + players[0][2]) / (int(turn) + 1)
-                # Kind of this ^ but don't add the score, add (optimal - bot.score_position)
-
                 await reaction.remove(user)
 
             game.update_board(game.board, column, players[0][1])
@@ -913,21 +909,17 @@ class Gambling(commands.Cog):
 
             if not players[0][0].bot:
                 embed.description = f"{players[0][0].mention}, it's your turn."
-                if players[0][2] > 90:
-                    embed.description += " You seem to be playing *very* well, by the way..."
             else:
                 embed.description = f"My turn. Let me think..."
 
             await interaction.edit_original_response(embed=embed)
 
-        # TODO Finish this, show each player their accuracy
         if member.bot:    
-            if players[0][2] > 90:
-                embed.description = "I don't really like playing with cheaters."
-            else:
+            if winner.bot:
                 embed.description = "I win. 💁‍♂️"
-            await interaction.edit_original_response(embed=embed)
-            return
+            else:
+                embed.description = "I guess you win this time."
+            return await interaction.edit_original_response(embed=embed)
 
         # players[0][0] timed out.
         if timeout:
