@@ -9,11 +9,6 @@ from . import mysql
 high_roller_minimum = 1000
 
 
-class WrongChannel(app_commands.CheckFailure):
-    def __str__(self):
-        return "This command is only allowed in the gambling hall channels."
-
-
 class MinimumBet(app_commands.CheckFailure):
     def __str__(self):
         return f"Bets in the high roller hall must meet the minimum bet: **{high_roller_minimum} gaybucks**."
