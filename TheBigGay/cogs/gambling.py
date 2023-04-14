@@ -89,8 +89,9 @@ class Gambling(commands.Cog):
             description=(
                 f"You chose 1 in {odds} odds. Here we go: three, two, one..."
             ),
-            color=discord.Color.green()
+            color=discord.Color.teal()
         )
+        embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
 
         await interaction.response.send_message(embed=embed)   
         message = await interaction.original_response()
@@ -114,11 +115,9 @@ class Gambling(commands.Cog):
             payout = bet * odds
             balance = mysql.update_balance(interaction.user, payout - bet)
 
+            embed.color = discord.Color.green()
             embed.description += f"\n\n...**{pick}!** Congrats, {interaction.user.mention}! "\
                 f"At **{odds}:1 odds**, your payout is **{payout} gaybucks**."
-
-            embed.add_field(name="Balance", value=f"You now have {balance} gaybucks.",
-                            inline=False)
 
             if mysql.check_leaderboard("Odds", interaction.user, payout):
                 await interaction.followup.send(f"New Odds high score of **{payout}GB**, set by {interaction.user.mention}!")
@@ -129,8 +128,7 @@ class Gambling(commands.Cog):
             embed.description += f"\n\n...**{pick}!** Sorry,{interaction.user.mention}. Better luck next time."
             embed.color = discord.Color.red()
 
-            embed.add_field(name="Balance", value=f"You now have {balance} gaybucks.",
-                            inline=False)
+        embed.add_field(name="Balance", value=f"You now have {balance} gaybucks.", inline=False)
 
         await interaction.edit_original_response(embed=embed)
 
@@ -159,8 +157,9 @@ class Gambling(commands.Cog):
                 f"A card-cutting bet has started against "
                 f"{player2.mention}. Do you accept?"
             ),
-            color=discord.Color.green()
+            color=discord.Color.teal()
         )
+        embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         await interaction.response.send_message(embed=embed)
         message = await interaction.original_response()
 
@@ -246,6 +245,7 @@ class Gambling(commands.Cog):
         winner_balance = mysql.update_balance(winner, pot - bet)
         loser_balance = mysql.update_balance(loser, -bet)
 
+        embed.color = discord.Color.green()
         embed.description = embed.description.split("\n\n")[1] + f"\n\nCongratulations, {winner.mention}! You've won **{pot} gaybucks**!"
         embed.add_field(
             name=f"Balances",
@@ -263,31 +263,38 @@ class Gambling(commands.Cog):
             await interaction.followup.send(f"New Cardcut high score of **{pot}GB**, set by {winner.mention}!")
 
     @app_commands.command(description="(1 Player) Bet with 5x odds on which of the five horses will reach the finish line first.")
-    @app_commands.describe(bet="your bet in gaybucks")
-    async def horse(self, interaction: discord.Interaction, bet: int):        
+    @app_commands.describe(racer_type="the type of racer to use", bet="your bet in gaybucks")
+    @app_commands.choices(racer_type=[
+        app_commands.Choice(name='Turtles x3', value=0),
+        app_commands.Choice(name='Dogs x5', value=1),
+        app_commands.Choice(name='Horses x8', value=2),
+        app_commands.Choice(name='Dinosaurs x10', value=3)
+    ])
+    async def race(self, interaction: discord.Interaction, racer_type: app_commands.Choice[int], bet: int):        
         checks.is_valid_bet(interaction.channel, interaction.user, bet)
 
-        horses = [
-            "🏁- - - - - 🏇**1.**",
-            "🏁- - - - - 🏇**2.**",
-            "🏁- - - - - 🏇**3.**",
-            "🏁- - - - - 🏇**4.**",
-            "🏁- - - - - 🏇**5.**"
-        ]
+        racer_types = [("🐢", 3), ("🐕", 5), ("🏇", 8), ("🦖", 10)]
+        racer_choice = racer_types[racer_type.value]
 
-        options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
+        line = "🏁- - - - - - - - - - - #"
 
-        description = (
-            "Choose your horse!\n\n"
-            f"{horses[0]}\n\n{horses[1]}\n\n{horses[2]}\n\n{horses[3]}" 
-            f"\n\n{horses[4]}"
-        )
-        embed = discord.Embed(title=f"Horse Racing", description=description, color=discord.Color.green())
+        options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+
+        racers = list()
+
+        description = "Choose your racer!"
+
+        for i in range(racer_choice[1]):
+            racers.append(line.replace("#", f"{racer_choice[0]}**{i+1}.**"))
+            description += f"\n\n{racers[i]}"
+
+        embed = discord.Embed(title=f"Racing", description=description, color=discord.Color.teal())
+        embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         await interaction.response.send_message(embed=embed)
         message = await interaction.original_response()
 
-        for option in options:
-            await message.add_reaction(option)
+        for i in range(racer_choice[1]):
+            await message.add_reaction(options[i])
 
         def react_check(reaction: discord.Reaction, user: discord.User):
             return user.id == interaction.user.id and reaction.message.id == message.id and str(reaction) in options
@@ -298,59 +305,44 @@ class Gambling(commands.Cog):
         except asyncio.TimeoutError:
             return await interaction.delete_original_response()
 
-        tied = []
-        while True:
-            choice = random.randint(0, 4)
-
-            horses[choice] = horses[choice][0] + horses[choice][3:]
-
-            description = (
-                f"And they're off!\n\n"
-                f"{horses[0]}\n\n{horses[1]}\n\n{horses[2]}\n\n{horses[3]}"
-                f"\n\n{horses[4]}"
-            )
-            embed = discord.Embed(title=f"Horse Racing", description=description, color=discord.Color.green())
-            await message.edit(embed=embed)
-
-            if horses[choice][1] == "🏇":
-                winner = choice + 1
-                sorted_horses = sorted(horses, key=len)
-                second = int(sorted_horses[1][-4])
-
-                for i in range(2, len(sorted_horses)):
-                    if len(sorted_horses[1]) == len(sorted_horses[i]):
-                        if i == 2:
-                            tied.append(int(sorted_horses[1][-4]))
-                        tied.append(int(sorted_horses[i][-4]))
-                break
-
+        winner = None
+        while not winner:
             await asyncio.sleep(1)
+            for _ in range(len(racers) // 2):
+                choice = random.randint(0, racer_choice[1] - 1)
+
+                # Move the racers along
+                racers[choice] = racers[choice][0] + racers[choice][3:]
+
+                if racers[choice][1] == racer_choice[0]:
+                    racers[choice] = racers[choice].replace("🏁", "🏆")
+                    winner = choice + 1
+                    break
+
+            description = "And they're off!"
+            for i in range(racer_choice[1]):
+                description += f"\n\n{racers[i]}"
+            embed.description = description
+            await interaction.edit_original_response(embed=embed)
 
         if winner == guess:
-            profit = bet * 2
-            embed.description += f"\n\n**Horse {winner} Wins!**\nYou have won **{bet * 3} gaybucks**!"     
-
-        elif tied and guess in tied:
-            profit = bet
-            embed.description += f"\n\n**Horse {guess} Comes in Second (tie)!**\nYou have won **{bet * 2} gaybucks**!"
-
-        elif second == guess:
-            profit = bet
-            embed.description += f"\n\n**Horse {second} Comes in Second!**\nYou have won **{bet * 2} gaybucks**!"
+            profit = bet * (racer_choice[1] - 1)
+            embed.color = discord.Color.green()
+            embed.description += f"\n\n**Racer {winner} Wins!**\nYou have won **{bet * racer_choice[1]} gaybucks**!"     
                 
         else:
             profit = -bet
             mysql.add_to_lottery(self.bot.application_id, interaction.guild, bet)
-            embed.description += f"\n\n**Horse {winner} Wins**\nYou have lost **{bet} gaybucks**."
             embed.color = discord.Color.red()
+            embed.description += f"\n\n**Racer {winner} Wins**\nYou have lost **{bet} gaybucks**."
 
         balance = mysql.update_balance(interaction.user, profit)
 
         embed.add_field(name="Balance", value=f"You now have {balance} gaybucks", inline=False)
         await interaction.edit_original_response(embed=embed)
 
-        if profit > 0 and mysql.check_leaderboard("Horse", interaction.user, bet + profit):
-                await interaction.followup.send(f"New Horse high score of **{bet + profit}GB**, set by {interaction.user.mention}!")
+        if profit > 0 and mysql.check_leaderboard("Race", interaction.user, bet + profit):
+                await interaction.followup.send(f"New Race high score of **{bet + profit}GB**, set by {interaction.user.mention}!")
 
     @app_commands.command(description="(1 Player) Cash out before the crash.")
     @app_commands.describe(bet="your bet in gaybucks")
@@ -360,11 +352,12 @@ class Gambling(commands.Cog):
         multiplier = 1.0
         profit = int(round((bet * multiplier) - bet))
 
-        embed = discord.Embed(title="Crash", color=discord.Color.green())
+        embed = discord.Embed(title="Crash", color=discord.Color.teal())
         embed.add_field(name="Multiplier", value="{:.1f}x".format(multiplier), inline=True)
         embed.add_field(name="\u200b", value="\u200b", inline=True)
         embed.add_field(name="Profit", value=f"{int(profit)} gaybucks", inline=True)
         embed.add_field(name="\u200b", value=f"React with :x: to stop!", inline=False)
+        embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
 
         await interaction.response.send_message(embed=embed)
         message = await interaction.original_response()
@@ -382,8 +375,8 @@ class Gambling(commands.Cog):
                 reactors = [user async for user in reaction.users()]
 
                 if interaction.user in reactors:
-                    embed = discord.Embed(title="Crash", color=discord.Color.green())
-                    embed.add_field(name="Stopped at", value="{:.1f}x".format(multiplier), inline=True)
+                    embed.color = discord.Color.green()
+                    embed.set_field_at(0, name="Stopped at", value="{:.1f}x".format(multiplier), inline=True)
                     break
 
             previous = 1/multiplier
@@ -395,15 +388,14 @@ class Gambling(commands.Cog):
                 profit = -bet
                 mysql.add_to_lottery(self.bot.application_id, interaction.guild, bet)
 
-                embed = discord.Embed(title="Crash", color=discord.Color.red())
-                embed.add_field(name="Crashed at", value="{:.1f}x".format(multiplier), inline=True)
+                embed.color = discord.Color.red()
+                embed.set_field_at(0, name="Crashed at", value="{:.1f}x".format(multiplier), inline=True)
                 break
 
-            embed = discord.Embed(title="Crash", color=discord.Color.green())
-            embed.add_field(name="Multiplier", value="{:.1f}x".format(multiplier), inline=True)
-            embed.add_field(name="\u200b", value="\u200b", inline=True)
-            embed.add_field(name="Profit", value=f"{profit} gaybucks", inline=True)
-            embed.add_field(name="\u200b", value=f"React with :x: to stop!", inline=False)
+            embed.set_field_at(0, name="Multiplier", value="{:.1f}x".format(multiplier), inline=True)
+            embed.set_field_at(1, name="\u200b", value="\u200b", inline=True)
+            embed.set_field_at(2, name="Profit", value=f"{profit} gaybucks", inline=True)
+            embed.set_field_at(3, name="\u200b", value=f"React with :x: to stop!", inline=False)
 
             await interaction.edit_original_response(embed=embed)
 
@@ -416,10 +408,9 @@ class Gambling(commands.Cog):
 
         balance = mysql.update_balance(interaction.user, profit)
         
-        embed.add_field(name="\u200b", value="\u200b", inline=True)
-        embed.add_field(name="Profit", value=f"{profit} gaybucks", inline=True)
-        embed.add_field(name="Balance", value=f"You now have {balance} gaybucks.",
-                        inline=False)
+        embed.set_field_at(1, name="\u200b", value="\u200b", inline=True)
+        embed.set_field_at(2, name="Profit", value=f"{profit} gaybucks", inline=True)
+        embed.set_field_at(3, name="Balance", value=f"You now have {balance} gaybucks.", inline=False)
         await interaction.edit_original_response(embed=embed)
 
         if mysql.check_leaderboard("Crash", interaction.user, profit):
@@ -460,12 +451,13 @@ class Gambling(commands.Cog):
         total = 0
 
         embed = discord.Embed(title="Minesweeper", description=f"There are 2 bombs out there...",
-                              color=discord.Color.green())
+                              color=discord.Color.teal())
         embed.add_field(name="Next Score", value=f"+{next_score} gaybucks", inline=False)
         embed.add_field(name="Total Profit", value=f"{total} gaybucks", inline=False)
         embed.add_field(name="Odds of Scoring", value="{:.2f}%".format(odds * 100), inline=False)
         embed.add_field(name="\u200b", value=f"Select the row and column of the square you wish to reveal, or select ❌ to stop. Please wait until the reactions reset before inputting your next square.", inline=False)
         embed.add_field(name="\u200b", value=field, inline=False)
+        embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         await interaction.response.send_message(embed=embed)
         message = await interaction.original_response()
 
@@ -551,13 +543,11 @@ class Gambling(commands.Cog):
             cumulative_odds *= odds
             next_score = int(round(bet/cumulative_odds)) - bet - total
 
-            embed = discord.Embed(title="Minesweeper", description=f"There are 2 bombs out there...",
-                                  color=discord.Color.green())
-            embed.add_field(name="Next Score", value=f"+{next_score} gaybucks", inline=False)
-            embed.add_field(name="Total Profit", value=f"{total} gaybucks", inline=False)
-            embed.add_field(name="Odds of Scoring", value="{:.2f}%".format(odds * 100), inline=False)
-            embed.add_field(name="\u200b", value=f"Select the row and column, or ❌ to stop.", inline=False)
-            embed.add_field(name="\u200b", value=field, inline=False)
+            embed.set_field_at(0, name="Next Score", value=f"+{next_score} gaybucks", inline=False)
+            embed.set_field_at(1, name="Total Profit", value=f"{total} gaybucks", inline=False)
+            embed.set_field_at(2, name="Odds of Scoring", value="{:.2f}%".format(odds * 100), inline=False)
+            embed.set_field_at(3, name="\u200b", value=f"Select the row and column, or ❌ to stop.", inline=False)
+            embed.set_field_at(4, name="\u200b", value=field, inline=False)
 
             await message.edit(embed=embed)
 
@@ -574,6 +564,7 @@ class Gambling(commands.Cog):
 
         balance = mysql.update_balance(interaction.user, total)
 
+        embed.color = discord.Color.green()
         embed.add_field(name="Winner!", value=f"You have won **{total} gaybucks**",
                         inline=False)
         embed.add_field(name="Balance", value=f"You now have {balance} gaybucks",
@@ -603,8 +594,9 @@ class Gambling(commands.Cog):
             f"\n{interaction.user.mention}, you can hit ❌ to start earlier."
         )
 
-        embed = discord.Embed(title="Smoke or Fire", description=description, color=discord.Color.green())
+        embed = discord.Embed(title="Smoke or Fire", description=description, color=discord.Color.teal())
         embed.add_field(name="Players:", value=players[0].mention, inline=False)
+        embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         await interaction.response.send_message(embed=embed)
         message = await interaction.original_response()
 
@@ -797,6 +789,7 @@ class Gambling(commands.Cog):
 
             value += f"{player.mention}: {balance}GB\n"
 
+        embed.color = discord.Color.green()
         embed.description = "Congratulations on your winnings... or losings!"
         embed.add_field(name="Balance:", value=value, inline=False)
         await interaction.edit_original_response(embed=embed)
@@ -819,9 +812,10 @@ class Gambling(commands.Cog):
 
             players.append([self.bot.user, 2])
         else:
-            description = (f"{member.mention}, you have been challenged to Connect 4 against {interaction.user.mention} with a **{bet}GB** bet. Do you accept?")
+            description = (f"{member.mention}, you have been challenged to game of Connect 4 with a **{bet}GB** bet. Do you accept?")
 
-        embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.green())
+        embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.teal())
+        embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         await interaction.response.send_message(embed=embed)
         message = await interaction.original_response()
 
@@ -916,8 +910,10 @@ class Gambling(commands.Cog):
 
         if member.bot:    
             if winner.bot:
+                embed.color = discord.Color.red()
                 embed.description = "I win. 💁‍♂️"
             else:
+                embed.color = discord.Color.green()
                 embed.description = "I guess you win this time."
             return await interaction.edit_original_response(embed=embed)
 
@@ -927,6 +923,7 @@ class Gambling(commands.Cog):
             player1_bal = mysql.update_balance(players[0][0], -bet)
             mysql.add_to_lottery(self.bot.application_id, interaction.guild, bet)
 
+            embed.color = discord.Color.green()
             embed.description = f"Winner! Kinda. {players[0][0].mention} has forfeited (timeout)."
             embed.add_field(
                 name=f"Balances",
@@ -942,6 +939,7 @@ class Gambling(commands.Cog):
         winner_balance = mysql.update_balance(winner, bet)
         loser_balance = mysql.update_balance(loser, -bet)
 
+        embed.color = discord.Color.green()
         embed.description = f"{players[0][0].mention} wins!"
         embed.set_field_at(
             0, 
