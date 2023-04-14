@@ -44,7 +44,7 @@ extensions = (
 
 class GaybotCommandTree(app_commands.CommandTree):
     async def on_error(self, interaction: discord.Interaction, exception: discord.app_commands.AppCommandError):
-        if isinstance(exception, (checks.WrongChannel, checks.MinimumBet, app_commands.CheckFailure, app_commands.CommandInvokeError)):
+        if isinstance(exception, (checks.MinimumBet, app_commands.CheckFailure, app_commands.CommandInvokeError)):
             error_message = exception
         else:
             error_message = "Uh oh... \**grunts*\* something's not right here... \**farts*\*"
