@@ -812,16 +812,14 @@ class Gambling(commands.Cog):
         yes_no = ["❌", "✅"]
         options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣"]
 
-        player1 = interaction.user
-        players = [(player1, 1)]
+        players = [[interaction.user, 1, 0]]
 
-
-        # TODO Create the algorithm for this
         if member.bot:
-            description = (f"So, you've chosen death. I'll let you go first--not like it'll matter.")
-            # return await interaction.response.send_message("You cannot challenge the master. Yet...", ephemeral=True)
+            description = (f"Let's see what you've got. You go first--not like it'll matter.")
+
+            players.append([self.bot.user, 2, 100])
         else:
-            description = (f"{member.mention}, {player1.mention} challenges you to Connect 4 with a **{bet}GB** bet. Do you accept? React to this message accordingly.")
+            description = (f"{member.mention}, you have been challenged to Connect 4 against {interaction.user.mention} with a **{bet}GB** bet. Do you accept?")
 
         embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.green())
         await interaction.response.send_message(embed=embed)
@@ -855,11 +853,6 @@ class Gambling(commands.Cog):
 
             embed.description = f"{players[0][0].mention}, you start."
 
-        else:
-            players.append((self.bot.user, 2))
-
-            bot = Solver(2)
-
         embed.add_field(
             name="\u200b", 
             value=(
@@ -870,6 +863,7 @@ class Gambling(commands.Cog):
             inline=False)
 
         game = Connect4()
+        bot = Solver()
 
         embed.add_field(name="\u200b", value=game.draw_board(), inline=False)
         await interaction.edit_original_response(embed=embed)
@@ -883,23 +877,15 @@ class Gambling(commands.Cog):
 
 
         timeout = False
-        optimal_count = 0
+
+        turn = 1.0
 
         # Game loop
         while True:
             if players[0][0].bot:
-                # TODO Good? Idk
-                async with interaction.channel.typing():
-                    column = bot.find_solution(game, players[0][1], 7)[0]
+                column = bot.find_solution(game, players[0][1], 7)[0]
 
             else:
-                optimal = bot.find_solution(game, players[0][1], 5)
-
-                # TODO take out
-                print("Optimal: ", optimal)
-                if optimal[1] < 0:
-                    print(game.board)
-
                 try:
                     reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
                 except asyncio.TimeoutError:
@@ -908,10 +894,11 @@ class Gambling(commands.Cog):
 
                 column = options.index(str(reaction))
 
-                await reaction.remove(user)
+                optimal = bot.find_solution(game, players[0][1], 5)[1]
+                # players[0][2] += (optimal + players[0][2]) / (int(turn) + 1)
+                # Kind of this ^ but don't add the score, add (optimal - bot.score_position)
 
-                if column == optimal[0]:
-                    optimal_count += 1
+                await reaction.remove(user)
 
             game.update_board(game.board, column, players[0][1])
 
@@ -926,16 +913,16 @@ class Gambling(commands.Cog):
 
             if not players[0][0].bot:
                 embed.description = f"{players[0][0].mention}, it's your turn."
-                if optimal_count > 8:
+                if players[0][2] > 90:
                     embed.description += " You seem to be playing *very* well, by the way..."
             else:
                 embed.description = f"My turn. Let me think..."
 
             await interaction.edit_original_response(embed=embed)
 
-        # TODO Finish this
+        # TODO Finish this, show each player their accuracy
         if member.bot:    
-            if optimal_count >= 10:
+            if players[0][2] > 90:
                 embed.description = "I don't really like playing with cheaters."
             else:
                 embed.description = "I win. 💁‍♂️"
