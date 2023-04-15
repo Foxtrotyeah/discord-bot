@@ -1,10 +1,15 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from discord.ui import View, Select, UserSelect
+from discord.ui import View, Select, UserSelect, Button
 import asyncio
+from numpy.random import choice
+from pyfiglet import Figlet
 
-from .utils import mysql
+from .utils import mysql, checks
+
+
+figlet = Figlet(font='smslant')
 
 
 class Shop(commands.Cog, command_attrs=dict(hidden=True)):
@@ -90,7 +95,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
             option[0].default = True
             view.children[0].disabled = True
 
-            # Check if they can affor this option
+            # Check if they can afford this option
             if mysql.get_wallet(interaction.user)[0] < option[1]:
                 await interaction.response.edit_message(view=view)
                 return await interaction.followup.send("Yeah? With what money?", ephemeral=True)
@@ -248,6 +253,45 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
         await thread.leave()
         await thread.add_user(member)
         await interaction.followup.send("Enjoy your private gambling experience!", ephemeral=True)
+
+    @app_commands.command(description="Buy a crate to open")
+    @app_commands.describe(crate_type="the type of crate to purchase")
+    @app_commands.rename(crate_type='type')
+    @app_commands.choices(crate_type=[
+        app_commands.Choice(name='Standard - 500GB', value=0),
+        app_commands.Choice(name='Epic - 2500GB', value=1),
+        app_commands.Choice(name='Elite - 10000GB', value=2)
+    ])
+    async def crate(self, interaction: discord.Interaction, crate_type: app_commands.Choice[int]):
+        # TODO create probabilities and values for other crates, set for 500 right now
+        crate = [
+            (500, [100, 300, 500, 1000, 2500], [0.1, 0.55, 0.2, 0.1, 0.05], 'minecraft_chest.png'),
+            (2500, [100, 300, 500, 1000, 2500], [0.1, 0.55, 0.2, 0.1, 0.05], 'https://w7.pngwing.com/pngs/17/878/png-transparent-paladins-chest-wiki-chest-miscellaneous-weapon-treasure-thumbnail.png'),
+            (10000, [100, 300, 500, 1000, 2500], [0.1, 0.55, 0.2, 0.1, 0.05], 'https://e7.pngegg.com/pngimages/128/69/png-clipart-brown-and-gray-chest-box-art-illustration-paladins-fortnite-chest-video-game-fortnite-chest-game-furniture.png'),
+        ][crate_type.value]
+
+        checks.is_valid_bet(interaction.channel, interaction.user, crate[0])
+
+        embed = discord.Embed(title='Crate', color=discord.Color.gold())
+
+        attachment = discord.File(f'./assets/chests/{crate[3]}', filename=f'{crate[3]}')
+        embed.set_image(url=f'attachment://{crate[3]}')
+
+        view = View()
+        button = Button(style=discord.ButtonStyle.green, label='Open')
+
+        async def callback(interaction: discord.Interaction):
+            # TODO Check if interaction user is the original command user. Add this to original embed? Followup looks weird.
+            value = choice(crate[1], p=crate[2])
+
+            embed = discord.Embed(title='Crate', description=f"`{figlet.renderText(str(value))}`", color=discord.Color.gold())            
+            await interaction.response.send_message(embed=embed)
+
+        button.callback = callback
+        view.add_item(button)
+
+        await interaction.response.send_message(file=attachment, embed=embed, view=view)
+
 
 async def setup(bot):
     await bot.add_cog(Shop(bot))
