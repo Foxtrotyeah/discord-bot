@@ -4,8 +4,7 @@ from discord.ext import commands, tasks
 import datetime
 from dateutil.relativedelta import relativedelta
 
-from .utils import mysql
-from .utils import checks
+from .utils import mysql, checks
 
 
 time = datetime.time(hour=21, tzinfo=mysql.timezone)
