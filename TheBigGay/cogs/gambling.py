@@ -5,8 +5,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from .utils import mysql
-from .utils import checks
+from .utils import mysql, checks
 from .utils.connect4 import Connect4, Solver
 
 
@@ -264,6 +263,7 @@ class Gambling(commands.Cog):
 
     @app_commands.command(description="(1 Player) Bet with 5x odds on which of the five horses will reach the finish line first.")
     @app_commands.describe(racer_type="the type of racer to use", bet="your bet in gaybucks")
+    @app_commands.rename(racer_type='type')
     @app_commands.choices(racer_type=[
         app_commands.Choice(name='Turtles x3', value=0),
         app_commands.Choice(name='Dogs x5', value=1),
