@@ -9,7 +9,7 @@ from pyfiglet import Figlet
 from .utils import mysql, checks
 
 
-figlet = Figlet(font='smslant')
+figlet = Figlet(font='slant')
 
 
 class Shop(commands.Cog, command_attrs=dict(hidden=True)):
@@ -264,33 +264,38 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
     ])
     async def crate(self, interaction: discord.Interaction, crate_type: app_commands.Choice[int]):
         # TODO create probabilities and values for other crates, set for 500 right now
+        # Also... should I be updating balance at the start of every bet? Able to type /crate as many times as you want with 500GB, then open.
         crate = [
-            (500, [100, 300, 500, 1000, 2500], [0.1, 0.55, 0.2, 0.1, 0.05], 'minecraft_chest.png'),
+            (500, [100, 300, 500, 750, 1000, 2000], [0.1, 0.55, 0.1, 0.1, 0.1, 0.05], 'minecraft_chest.png'),
             (2500, [100, 300, 500, 1000, 2500], [0.1, 0.55, 0.2, 0.1, 0.05], 'https://w7.pngwing.com/pngs/17/878/png-transparent-paladins-chest-wiki-chest-miscellaneous-weapon-treasure-thumbnail.png'),
             (10000, [100, 300, 500, 1000, 2500], [0.1, 0.55, 0.2, 0.1, 0.05], 'https://e7.pngegg.com/pngimages/128/69/png-clipart-brown-and-gray-chest-box-art-illustration-paladins-fortnite-chest-video-game-fortnite-chest-game-furniture.png'),
         ][crate_type.value]
 
         checks.is_valid_bet(interaction.channel, interaction.user, crate[0])
+        mysql.update_balance(interaction.user, -crate[0])
 
         embed = discord.Embed(title='Crate', color=discord.Color.gold())
 
         attachment = discord.File(f'./assets/chests/{crate[3]}', filename=f'{crate[3]}')
-        embed.set_image(url=f'attachment://{crate[3]}')
+        embed.set_thumbnail(url=f'attachment://{crate[3]}')
 
         view = View()
         button = Button(style=discord.ButtonStyle.green, label='Open')
 
         async def callback(interaction: discord.Interaction):
-            # TODO Check if interaction user is the original command user. Add this to original embed? Followup looks weird.
+            button.disabled = True
             value = choice(crate[1], p=crate[2])
 
-            embed = discord.Embed(title='Crate', description=f"`{figlet.renderText(str(value))}`", color=discord.Color.gold())            
-            await interaction.response.send_message(embed=embed)
+            balance = mysql.update_balance(interaction.user, int(value))
+
+            embed.description = f"`{figlet.renderText('{:,}'.format(value))}`"
+            embed.add_field(name="Balance", value=f"You now have {balance} gaybucks", inline=False)
+            await interaction.response.edit_message(embed=embed, view=view)
 
         button.callback = callback
         view.add_item(button)
 
-        await interaction.response.send_message(file=attachment, embed=embed, view=view)
+        await interaction.response.send_message(file=attachment, embed=embed, view=view, ephemeral=True)
 
 
 async def setup(bot):
