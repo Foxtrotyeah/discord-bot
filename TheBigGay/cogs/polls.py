@@ -85,13 +85,13 @@ class Polls(commands.Cog):
     @app_commands.describe(inputs="your poll entries *separated by a comma*")
     async def poll(self, interaction: discord.Interaction, *, inputs: str):
         description = str()
-        choices = str(inputs).split(", ")
+        choices = str(inputs).split(",")
 
         i = 0
         for choice in choices:
             if i > 0:
                 description += "\n\n"
-            description += "{}: **{}**".format(Poll.reactions[i], choice)
+            description += "{}: **{}**".format(Poll.reactions[i], choice.strip())
             i += 1
 
         reg_poll = Poll(interaction, "Poll", description, inputs=choices)
