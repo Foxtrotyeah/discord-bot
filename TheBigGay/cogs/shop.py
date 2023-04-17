@@ -147,7 +147,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
         except Exception as e:
             print(e)
 
-        await interaction.followup.send(f"{member.mention} Shush.")
+        await interaction.followup.send(f"{member.mention} Shush. {interaction.user.mention} says you were talking too much.")
 
         await asyncio.sleep(60)
 
@@ -169,7 +169,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
         except Exception as e:
             print(e)
 
-        await interaction.followup.send(f"{member.mention} Begone, THOT! Check your DMs to get your privileges back 😉")
+        await interaction.followup.send(f"{member.mention} Begone, THOT! {interaction.user.mention} has booted you. Check your DMs to get your privileges back 😉")
 
         await member.send("Looks like you got put in time out. If you want back in, you'd better beg for daddy.")
 
@@ -187,7 +187,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
         role = discord.utils.get(interaction.guild.roles, name="Admin Lite")
         await member.add_roles(role)
 
-        await interaction.followup.send("Enjoy being admin. Watch out, everybody!")
+        await interaction.followup.send(f"Enjoy being admin, {member.mention}. Watch out, everybody!")
 
         await asyncio.sleep(60*30)
         await member.remove_roles(role)
@@ -235,7 +235,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
 
         role = discord.utils.get(interaction.guild.roles, name="Step Bro")
         await member.add_roles(role)
-        await interaction.followup.send("Welcome to the family, Step Bro! ;)")
+        await interaction.followup.send(f"{interaction.user.mention} Welcome to the family, Step Bro! ;)")
 
     async def private_room(self, interaction: discord.Interaction):
         member = interaction.user
@@ -252,7 +252,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
         thread = await channel.create_thread(name=f"{member.name}'s Room", auto_archive_duration=10080)
         await thread.leave()
         await thread.add_user(member)
-        await interaction.followup.send("Enjoy your private gambling experience!", ephemeral=True)
+        await interaction.followup.send(f"Enjoy your private gambling experience! Here is your room: {thread.mention}", ephemeral=True)
 
     @app_commands.command(description="Buy a crate to open")
     @app_commands.describe(crate_type="the type of crate to purchase")
