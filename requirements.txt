@@ -4,3 +4,5 @@ pynacl
 pymysql
 requests
 pytz
+python-dateutil
+pyfiglet
