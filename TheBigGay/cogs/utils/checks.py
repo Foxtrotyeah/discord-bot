@@ -1,12 +1,26 @@
 import discord
+from discord.ui import View
 from discord import app_commands
 from discord.ext import commands
 from datetime import datetime
+import typing
 
 from . import mysql
 
 
 high_roller_minimum = 1000
+
+
+class ExclusiveView(View):
+    def __init__(self, author: typing.Union[discord.Member, discord.User]):
+        self.author = author
+        super().__init__()
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user != self.author:
+            await interaction.response.send_message("That's not yours.", delete_after=5, ephemeral=True)
+            return False
+        return True
 
 
 class MinimumBet(app_commands.CheckFailure):
@@ -23,15 +37,12 @@ class IneligibleForSubsidy(app_commands.CheckFailure):
         )
 
 
-def is_valid_bet(channel: discord.TextChannel, member: discord.Member, amt: int) -> bool:
+def is_valid_bet(channel: discord.TextChannel, amt: int) -> bool:
     if amt <= 0:
         raise app_commands.CheckFailure("You have to place a nonzero bet.")
 
     if channel.name == 'high-roller-hall' and amt < high_roller_minimum:
         raise MinimumBet()
-
-    if mysql.get_wallet(member)[0] < amt:
-        raise app_commands.CheckFailure(f"Insufficient funds.")
 
     return True
 
