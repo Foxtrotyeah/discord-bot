@@ -3,6 +3,7 @@ import time
 import asyncio
 import discord
 from discord import app_commands
+from discord.ui import Button
 from discord.ext import commands
 
 from .utils import mysql, checks
@@ -76,7 +77,8 @@ class Gambling(commands.Cog):
     @app_commands.command(description="(1 Player) What are the odds I give you money? (1 in...?)")
     @app_commands.describe(odds="one in ...? (2-10)", bet="your bet in gaybucks")
     async def odds(self, interaction: discord.Interaction, odds: int, bet: int):
-        checks.is_valid_bet(interaction.channel, interaction.user, bet)
+        checks.is_valid_bet(interaction.channel, bet)
+        balance = mysql.update_balance(interaction.user, -bet)
 
         if not 2 <= odds <= 10:
             return await interaction.response.send_message("Make sure your 'odds' input is an integer between 2 and 10.", ephemeral=True, delete_after=5)
@@ -112,7 +114,7 @@ class Gambling(commands.Cog):
 
         if result == pick:
             payout = bet * odds
-            balance = mysql.update_balance(interaction.user, payout - bet)
+            balance = mysql.update_balance(interaction.user, payout)
 
             embed.color = discord.Color.green()
             embed.description += f"\n\n...**{pick}!** Congrats, {interaction.user.mention}! "\
@@ -121,7 +123,6 @@ class Gambling(commands.Cog):
             if mysql.check_leaderboard("Odds", interaction.user, payout):
                 await interaction.followup.send(f"New Odds high score of **{payout}GB**, set by {interaction.user.mention}!")
         else:
-            balance = mysql.update_balance(interaction.user, -bet)
             mysql.add_to_lottery(self.bot.application_id, interaction.guild, bet)
 
             embed.description += f"\n\n...**{pick}!** Sorry,{interaction.user.mention}. Better luck next time."
@@ -134,7 +135,8 @@ class Gambling(commands.Cog):
     @app_commands.command(description="(2 Players) Bet with a friend to see who wins with a higher card.")
     @app_commands.describe(member="player 2", bet="your bet in gaybucks")
     async def cardcut(self, interaction: discord.Interaction, member: discord.Member, bet: int):
-        checks.is_valid_bet(interaction.channel, interaction.user, bet)
+        checks.is_valid_bet(interaction.channel, bet)
+        player1_bal = mysql.update_balance(interaction.user, -bet)
 
         options = ["❌", "✅"]
         suits = ["♠️", "♥️", "♣️", "♦️"]
@@ -143,6 +145,7 @@ class Gambling(commands.Cog):
         player1 = interaction.user
         player2 = member
         players = [player1, player2]
+        player_balances = {player1: player1_bal, player2: int()}
 
         if player1.id == player2.id:
             return await interaction.response.send_message("You can't just play with yourself in front of everyone!", ephemeral=True, delete_after=5)
@@ -167,7 +170,8 @@ class Gambling(commands.Cog):
 
         def react_check(reaction: discord.Reaction, user: discord.User):
             if user.id == player2.id and reaction.message.id == message.id and str(reaction) in options:
-                return checks.is_valid_bet(interaction.channel, user, bet)
+                player_balances[player2] = (mysql.update_balance(user, -bet))
+                return True
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=react_check)
@@ -241,8 +245,8 @@ class Gambling(commands.Cog):
         winner = final[0][0]
         loser = final[1][0]
 
-        winner_balance = mysql.update_balance(winner, pot - bet)
-        loser_balance = mysql.update_balance(loser, -bet)
+        winner_balance = mysql.update_balance(winner, pot)
+        loser_balance = player_balances[loser]
 
         embed.color = discord.Color.green()
         embed.description = embed.description.split("\n\n")[1] + f"\n\nCongratulations, {winner.mention}! You've won **{pot} gaybucks**!"
@@ -271,12 +275,13 @@ class Gambling(commands.Cog):
         app_commands.Choice(name='Dinosaurs x10', value=3)
     ])
     async def race(self, interaction: discord.Interaction, racer_type: app_commands.Choice[int], bet: int):        
-        checks.is_valid_bet(interaction.channel, interaction.user, bet)
+        checks.is_valid_bet(interaction.channel, bet)
+        balance = mysql.update_balance(interaction.user, -bet)
 
         racer_types = [("🐢", 3), ("🐕", 5), ("🏇", 8), ("🦖", 10)]
         racer_choice = racer_types[racer_type.value]
 
-        line = "🏁- - - - - - - - - - - #"
+        line = "🏁- - - - - - - #"
 
         options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
 
@@ -326,66 +331,72 @@ class Gambling(commands.Cog):
             await interaction.edit_original_response(embed=embed)
 
         if winner == guess:
-            profit = bet * (racer_choice[1] - 1)
+            winnings = bet * racer_choice[1]
+            balance = mysql.update_balance(interaction.user, winnings)
+
             embed.color = discord.Color.green()
-            embed.description += f"\n\n**Racer {winner} Wins!**\nYou have won **{bet * racer_choice[1]} gaybucks**!"     
+            embed.description += f"\n\n**Racer {winner} Wins!**\nYou have won **{winnings} gaybucks**!"     
                 
         else:
-            profit = -bet
+            winnings = 0
             mysql.add_to_lottery(self.bot.application_id, interaction.guild, bet)
             embed.color = discord.Color.red()
-            embed.description += f"\n\n**Racer {winner} Wins**\nYou have lost **{bet} gaybucks**."
-
-        balance = mysql.update_balance(interaction.user, profit)
+            embed.description += f"\n\n**Racer {winner} Wins**\nBetter luck next time."
 
         embed.add_field(name="Balance", value=f"You now have {balance} gaybucks", inline=False)
         await interaction.edit_original_response(embed=embed)
 
-        if profit > 0 and mysql.check_leaderboard("Race", interaction.user, bet + profit):
-                await interaction.followup.send(f"New Race high score of **{bet + profit}GB**, set by {interaction.user.mention}!")
+        if winnings > 0 and mysql.check_leaderboard("Race", interaction.user, winnings):
+            await interaction.followup.send(f"New Race high score of **{winnings}GB**, set by {interaction.user.mention}!")
 
     @app_commands.command(description="(1 Player) Cash out before the crash.")
     @app_commands.describe(bet="your bet in gaybucks")
     async def crash(self, interaction: discord.Interaction, bet: int):
-        checks.is_valid_bet(interaction.channel, interaction.user, bet)
+        checks.is_valid_bet(interaction.channel, bet)
+        balance = mysql.update_balance(interaction.user, -bet)
 
         multiplier = 1.0
-        profit = int(round((bet * multiplier) - bet))
+        winnings = int(round(bet * multiplier))
+        game_over = False
 
         embed = discord.Embed(title="Crash", color=discord.Color.teal())
         embed.add_field(name="Multiplier", value="{:.1f}x".format(multiplier), inline=True)
         embed.add_field(name="\u200b", value="\u200b", inline=True)
-        embed.add_field(name="Profit", value=f"{int(profit)} gaybucks", inline=True)
+        embed.add_field(name="Payout", value=f"{winnings} gaybucks", inline=True)
         embed.add_field(name="\u200b", value=f"React with :x: to stop!", inline=False)
         embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
 
-        await interaction.response.send_message(embed=embed)
-        message = await interaction.original_response()
-        await message.add_reaction('❌')
+        view = checks.ExclusiveView(interaction.user)
+        button = Button(style=discord.ButtonStyle.grey, label='Stop', emoji='🛑')
+
+        async def callback(interaction: discord.Interaction):
+            nonlocal game_over, balance
+            game_over = True
+
+            balance = mysql.update_balance(interaction.user, winnings)
+
+            embed.color = discord.Color.green()
+            embed.set_field_at(0, name="Stopped at", value="{:.1f}x".format(multiplier), inline=True)
+
+            await interaction.response.defer()
+
+        button.callback = callback
+        view.add_item(button)
+
+        await interaction.response.send_message(embed=embed, view=view)
 
         await asyncio.sleep(1)
 
-        while True:
+        while not game_over:
             start = time.time()
-
-            new_msg = discord.utils.get(self.bot.cached_messages, id=message.id)
-
-            reaction = next((x for x in new_msg.reactions if x.emoji == '❌'), None)
-            if reaction.count > 1:
-                reactors = [user async for user in reaction.users()]
-
-                if interaction.user in reactors:
-                    embed.color = discord.Color.green()
-                    embed.set_field_at(0, name="Stopped at", value="{:.1f}x".format(multiplier), inline=True)
-                    break
 
             previous = 1/multiplier
             multiplier += 0.1
-            profit = int(round((bet * multiplier) - bet))
+            winnings = int(round(bet * multiplier))
 
             risk = 1/(previous*multiplier)
             if random.random() >= risk:
-                profit = -bet
+                winnings = 0
                 mysql.add_to_lottery(self.bot.application_id, interaction.guild, bet)
 
                 embed.color = discord.Color.red()
@@ -394,10 +405,10 @@ class Gambling(commands.Cog):
 
             embed.set_field_at(0, name="Multiplier", value="{:.1f}x".format(multiplier), inline=True)
             embed.set_field_at(1, name="\u200b", value="\u200b", inline=True)
-            embed.set_field_at(2, name="Profit", value=f"{profit} gaybucks", inline=True)
+            embed.set_field_at(2, name="Payout", value=f"{winnings} gaybucks", inline=True)
             embed.set_field_at(3, name="\u200b", value=f"React with :x: to stop!", inline=False)
 
-            await interaction.edit_original_response(embed=embed)
+            await interaction.edit_original_response(embed=embed, view=view)
 
             # Smooth out tick speed to be roughly 1 second
             total = time.time() - start
@@ -405,16 +416,14 @@ class Gambling(commands.Cog):
 
             if offset > 0:
                 await asyncio.sleep(offset)
-
-        balance = mysql.update_balance(interaction.user, profit)
         
         embed.set_field_at(1, name="\u200b", value="\u200b", inline=True)
-        embed.set_field_at(2, name="Profit", value=f"{profit} gaybucks", inline=True)
+        embed.set_field_at(2, name="Payout", value=f"{winnings} gaybucks", inline=True)
         embed.set_field_at(3, name="Balance", value=f"You now have {balance} gaybucks.", inline=False)
-        await interaction.edit_original_response(embed=embed)
+        await interaction.edit_original_response(embed=embed, view=None)
 
-        if mysql.check_leaderboard("Crash", interaction.user, profit):
-            await interaction.followup.send(f"New Crash high score of **{profit}GB**, set by {interaction.user.mention}!")
+        if mysql.check_leaderboard("Crash", interaction.user, winnings):
+            await interaction.followup.send(f"New Crash high score of **{winnings}GB**, set by {interaction.user.mention}!")
 
 
     @app_commands.command(description="(1 Player) How many squares can you clear?")
