@@ -4,7 +4,7 @@ A bot for personal use amongst my Discord servers.
 
 ## Setup
 
-This bot is configured to run on a Heroku server using the Procfile, however it can be run by following these steps:
+This bot can be ran by following these steps:
 
 1. **Install dependencies**
 
@@ -12,7 +12,7 @@ This can be done with `pip install -U -r requirements.txt`
 
 2. **Create a MySQL database**
 
-If using Heroku, there is an add-on that makes this setup easy to integrate with Heroku.
+Database, host, password, and username will all be needed for bot functionality.
 
 3. **Set environment variables**
 
