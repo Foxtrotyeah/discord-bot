@@ -81,7 +81,7 @@ class Gambling(commands.Cog):
         balance = mysql.update_balance(interaction.user, -bet)
 
         if not 2 <= odds <= 10:
-            return await interaction.response.send_message("Make sure your 'odds' input is an integer between 2 and 10.", ephemeral=True, delete_after=5)
+            return await interaction.response.send_message("Make sure your 'odds' input is an integer between 2 and 10.", ephemeral=True, delete_after=10)
 
         options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
 
@@ -148,9 +148,9 @@ class Gambling(commands.Cog):
         player_balances = {player1: player1_bal}
 
         if player1.id == player2.id:
-            return await interaction.response.send_message("You can't just play with yourself in front of everyone!", ephemeral=True, delete_after=5)
+            return await interaction.response.send_message("You can't just play with yourself in front of everyone!", ephemeral=True, delete_after=10)
         elif player2.bot:
-            return await interaction.response.send_message("I'm sure you can find a human to play with!", ephemeral=True, delete_after=5)
+            return await interaction.response.send_message("I'm sure you can find a human to play with!", ephemeral=True, delete_after=10)
 
         # Initial prompt to get player 2's consent
         embed = discord.Embed(
@@ -367,7 +367,7 @@ class Gambling(commands.Cog):
         embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
 
         view = checks.ExclusiveView(interaction.user)
-        button = Button(style=discord.ButtonStyle.grey, label='Stop', emoji='🛑')
+        button = Button(style=discord.ButtonStyle.gray, label='Stop', emoji='🛑')
 
         async def callback(interaction: discord.Interaction):
             nonlocal game_over, balance
@@ -457,13 +457,13 @@ class Gambling(commands.Cog):
         odds = (remaining - 2) / remaining
         cumulative_odds = odds
 
-        next_score = int(round(bet/odds))
-        total = 0
+        next_score = int(round(bet/odds)) - bet
+        total = bet
 
         embed = discord.Embed(title="Minesweeper", description=f"There are 2 bombs out there...",
                               color=discord.Color.teal())
-        embed.add_field(name="Next Score", value=f"+{next_score} gaybucks", inline=False)
-        embed.add_field(name="Total Payout", value=f"{total} gaybucks", inline=False)
+        embed.add_field(name="Next Score", value=f"+{next_score} gaybucks", inline=True)
+        embed.add_field(name="Total Payout", value=f"{total} gaybucks", inline=True)
         embed.add_field(name="Odds of Scoring", value="{:.2f}%".format(odds * 100), inline=False)
         embed.add_field(name="\u200b", value=f"Select the row and column of the square you wish to reveal, or select ❌ to stop. Please wait until the reactions reset before inputting your next square.", inline=False)
         embed.add_field(name="\u200b", value=field, inline=False)
@@ -537,10 +537,9 @@ class Gambling(commands.Cog):
                 return
 
             field = field.replace(choice, '✅')
-            # embed.set_field_at(-1, name="\u200b", value=field, inline=False)
-            # await interaction.edit_original_response(embed=embed)
 
             total += next_score  # update total score with previous prediction
+            
             remaining -= 1  # one less square
             # Win!
             if remaining - 2 == 0:
@@ -551,8 +550,8 @@ class Gambling(commands.Cog):
             cumulative_odds *= odds
             next_score = int(round(bet/cumulative_odds)) - total
 
-            embed.set_field_at(0, name="Next Score", value=f"+{next_score} gaybucks", inline=False)
-            embed.set_field_at(1, name="Total Payout", value=f"{total} gaybucks", inline=False)
+            embed.set_field_at(0, name="Next Score", value=f"+{next_score} gaybucks", inline=True)
+            embed.set_field_at(1, name="Total Payout", value=f"{total} gaybucks", inline=True)
             embed.set_field_at(2, name="Odds of Scoring", value="{:.2f}%".format(odds * 100), inline=False)
             embed.set_field_at(3, name="\u200b", value=f"Select the row and column, or ❌ to stop.", inline=False)
             embed.set_field_at(4, name="\u200b", value=field, inline=False)
@@ -573,10 +572,10 @@ class Gambling(commands.Cog):
         balance = mysql.update_balance(interaction.user, total)
 
         embed.color = discord.Color.green()
-        embed.add_field(name="Winner!", value=f"You have won **{total} gaybucks**",
-                        inline=False)
-        embed.add_field(name="Balance", value=f"You now have {balance} gaybucks",
-                        inline=False)
+        embed.set_field_at(0, name="Next Score", value=f"+0GB", inline=True)
+        embed.set_field_at(1, name="Total Payout", value=f"{total}GB", inline=True)
+        embed.add_field(name="Winner!", value=f"You have won **{total}GB**", inline=False)
+        embed.add_field(name="Balance", value=f"You now have {balance}GB", inline=False)
         await interaction.edit_original_response(embed=embed)
 
         if mysql.check_leaderboard("Minesweeper", interaction.user, total):
@@ -813,7 +812,7 @@ class Gambling(commands.Cog):
         checks.is_valid_bet(interaction.channel, bet)
 
         if member.id == interaction.user.id:
-            return await interaction.response.send_message("You can't just play with yourself in front of everyone!", ephemeral=True, delete_after=5)
+            return await interaction.response.send_message("You can't just play with yourself in front of everyone!", ephemeral=True, delete_after=10)
 
         yes_no = ["❌", "✅"]
         options = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣"]
@@ -892,7 +891,7 @@ class Gambling(commands.Cog):
         # Game loop
         while True:
             if players[0][0].bot:
-                column = bot.find_solution(game, players[0][1], 7)[0]
+                column = bot.find_solution(game, players[0][1], 6)[0]
 
             else:
                 try:
