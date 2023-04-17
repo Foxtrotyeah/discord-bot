@@ -61,15 +61,27 @@ class Economy(commands.Cog):
     @app_commands.command(description="Get your current balance and lottery tickets")
     async def wallet(self, interaction: discord.Interaction):
         result = mysql.get_wallet(interaction.user)
-        await interaction.response.send_message(f"Your balance is **{result[0]}** gaybucks and you have **{result[1]}** lottery ticket(s).", ephemeral=True)
+
+        embed = discord.Embed(title="Wallet", color=discord.Color.gold())
+        embed.add_field(name="Balance", value=f"{result[0]}GB", inline=True)
+        embed.add_field(name="Lottery", value=f"{result[1]} tickets")
+        embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(description="Receive your daily 50GB subsidy (if you're poor)")
     @checks.check_subsidy()
     async def subsidy(self, interaction: discord.Interaction):
         balance = mysql.subsidize(interaction.user)
 
-        await interaction.response.send_message(f"50 gaybucks have been added to your account, "
-                       f"courtesy of your sugar daddy 😉 (You now have **{balance}GB**)", ephemeral=True)
+        embed = discord.Embed(
+            title="Subsidy", 
+            description="50 gaybucks have been added to your account, courtesy of your sugar daddy 😉", 
+            color=discord.Color.gold()
+        )
+        embed.add_field(name="Balance", value=f"{balance}GB", inline=False)
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(description="Shows each member's current GB balance")
     async def economy(self, interaction: discord.Interaction):
@@ -95,7 +107,15 @@ class Economy(commands.Cog):
 
         mysql.update_balance(interaction.user, -amount)
         balance = mysql.update_balance(member, amount)
-        await interaction.response.send_message(f"Successfully donated {amount}GB to {member.mention}! They now have {balance}GB.")
+
+        embed = discord.Embed(
+            title="Donation", 
+            description=f"Successfully donated **{amount}GB** to {member.mention}! They now have **{balance}GB**.", 
+            color=discord.Color.gold()
+        )
+        embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+
+        await interaction.response.send_message(embed=embed)
 
     @app_commands.command(description="Buy lottery tickets for 50GB each")
     @app_commands.describe(amount="amount of lottery tickets to buy")
@@ -107,7 +127,7 @@ class Economy(commands.Cog):
     async def lottery(self, interaction: discord.Interaction):
         result = mysql.get_lottery(self.bot.application_id, interaction.guild)
 
-        description = f"The current lottery jackpot is **{result} gaybucks**. Buy your tickets with **/ticket** before the drawing at the end of the month!"
+        description = f"The current lottery jackpot is **{result} gaybucks**.\n\nBuy your tickets with **/ticket** before the drawing on the first of the month!"
         
         embed = discord.Embed(title="Lottery", description=description, color=discord.Color.gold())
         await interaction.response.send_message(embed=embed)
