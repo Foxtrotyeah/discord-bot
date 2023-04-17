@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 import pymysql
 import os
 from datetime import datetime
@@ -134,13 +135,17 @@ def update_balance(member: discord.Member, amt: int) -> int:
 
     result = _get_user_data(member.id, member.guild.id)
 
-    if amt != 0:
+    if amt == 0:
+        new_bal = result[1]
+
+    if amt < 0 and result[1] < -amt:
+        raise app_commands.CheckFailure(f"Insufficient funds.")
+
+    else:
         new_bal = max(result[1] + amt, 0)
 
         cursor.execute(f"UPDATE {table} SET balance={new_bal} WHERE user_id={member.id}")
         db.commit()
-    else:
-        new_bal = result[1]
 
     cursor = db.cursor()
     return new_bal
@@ -185,6 +190,10 @@ def buy_ticket(application_id: int, member: discord.Member, amt: int) -> int:
     ticket_price = 50
 
     user_result = _get_user_data(member.id, member.guild.id)
+
+    if user_result[1] < (ticket_price * amt):
+        raise app_commands.CheckFailure(f"Insufficient funds.")
+
     bot_result = _get_user_data(application_id, member.guild.id)
 
     user_bal = max(user_result[1] - (ticket_price * amt), 0)
