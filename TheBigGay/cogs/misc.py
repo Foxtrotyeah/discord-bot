@@ -99,14 +99,14 @@ class Miscellaneous(commands.Cog):
     @app_commands.command(description="I will make a decision for you")
     @app_commands.describe(inputs="your choices *separated by a comma*")
     async def choose(self, interaction: discord.Interaction, *, inputs: str):
-        choices = str(inputs).split(", ")
-        return await interaction.response.send_message(f"I choose **{random.choice(choices)}**!")
+        choices = str(inputs).split(",")
+        return await interaction.response.send_message(f"I choose **{random.choice(choices).strip()}**!")
 
     @app_commands.command(description="The bot's local time")
     @app_commands.default_permissions(administrator=True)
     async def time(self, interaction: discord.Interaction):
         timezone = pytz.timezone("US/Mountain")
-        await interaction.response.send_message("MST time: {}".format(datetime.now(timezone)))
+        await interaction.response.send_message("Current time: {} MST".format(datetime.now(timezone).strftime("%Y-%m-%d %H:%M:%S")))
 
     @app_commands.command(description="Send the owner an anonymous request or bug report.")
     async def request(self, interaction: discord.Interaction):
@@ -129,7 +129,12 @@ class Miscellaneous(commands.Cog):
     async def translate(self, interaction: discord.Interaction, *, text: str):
         translation, language = papago.translate(text)
 
-        await interaction.response.send_message(f'Translated from **{language}**: "{translation}"')
+        description = f"Original text: *{text}*"
+        embed = discord.Embed(title="Translation", description=description, color=discord.Color.blue())
+        embed.add_field(name="Detected language", value=language, inline=False)
+        embed.add_field(name="Translated to English", value=translation, inline=False)
+
+        await interaction.response.send_message(embed=embed)
 
     @app_commands.command(description="Sync command tree")
     @app_commands.default_permissions(administrator=True)
