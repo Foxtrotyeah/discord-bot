@@ -891,7 +891,7 @@ class Gambling(commands.Cog):
         # Game loop
         while True:
             if players[0][0].bot:
-                column = bot.find_solution(game, players[0][1], 6)[0]
+                column = bot.find_solution(game, players[0][1], 5)[0]
 
             else:
                 try:
