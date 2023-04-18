@@ -55,7 +55,7 @@ class Gambling(commands.Cog):
     # No messages except for commands in the Gambling category.
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.author.bot:
+        if message.author.bot or isinstance(message.channel, discord.DMChannel):
             return            
 
         if message.channel.category.name == 'Gambling':
