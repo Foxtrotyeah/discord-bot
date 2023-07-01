@@ -41,5 +41,16 @@
     "{} You should try soul-searching some time. You might just find one.",
     "{} Your birth certificate is an apology letter from the condom manufacturer.",
     "Sorry, I don't think {} would understand me. I don't speak dipshit."
-  ]
+  ],
+  "overwatch_heroes": {
+    "tanks": [
+      "D.Va", "Doomfist", "Junker Queen", "Orisa", "Reinhardt", "Roadhog", "Sigma", "Winston", "Wrecking Ball", "Zarya"
+    ],
+    "damage": [
+      "Ashe", "Bastion", "Cassidy", "Echo", "Genji", "Hanzo", "Junkrat", "Mei", "Pharah", "Reaper", "Sojourn", "Soldier: 76", "Sombra", "Symmetra", "Torbjörn", "Tracer", "Widowmaker"
+    ],
+    "support": [
+      "Ana", "Baptiste", "Brigitte", "Kiriko", "Lúcio", "Mercy", "Moira", "Zenyatta"
+    ]
+  }
 }
