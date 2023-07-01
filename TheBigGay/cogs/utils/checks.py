@@ -1,7 +1,6 @@
 import discord
 from discord.ui import View
 from discord import app_commands
-from discord.ext import commands
 from datetime import datetime
 import typing
 
@@ -12,12 +11,13 @@ high_roller_minimum = 1000
 
 
 class ExclusiveView(View):
-    def __init__(self, author: typing.Union[discord.Member, discord.User]):
-        self.author = author
+    def __init__(self, authorized: typing.Union[discord.Member, discord.User, list[typing.Union[discord.Member, discord.User]]]):
+        if type(authorized) is not list: authorized = [authorized]
+        self.authorized = authorized
         super().__init__()
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user != self.author:
+        if interaction.user.id not in self.authorized:
             await interaction.response.send_message("That's not yours.", delete_after=5, ephemeral=True)
             return False
         return True
