@@ -136,6 +136,23 @@ class Miscellaneous(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
+    @app_commands.command(description="Pick a random Overwatch 2 hero")
+    @app_commands.describe(role="Specify what role")
+    @app_commands.choices(role=[
+        app_commands.Choice(name='Tank', value=0),
+        app_commands.Choice(name='Damage', value=1),
+        app_commands.Choice(name='Support', value=2)
+    ])
+    async def randomhero(self, interaction:discord.Interaction, role:app_commands.Choice[int] = None):
+        with open("./assets/text.json", encoding="utf8", errors="ignore") as file:
+            all_heroes = json.load(file)["overwatch_heroes"]
+            if role:
+                heroes = all_heroes[role.name.lower()]
+            else:
+                heroes = random.choice(list(all_heroes.values()))
+            selected = random.choice(heroes)
+        await interaction.response.send_message(f"Your random hero: **{selected}**")
+
     @app_commands.command(description="Sync command tree")
     @app_commands.default_permissions(administrator=True)
     async def sync(self, interaction: discord.Interaction):
