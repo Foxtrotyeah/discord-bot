@@ -667,8 +667,6 @@ class Gambling(commands.Cog):
             return description
 
         def generate_card() -> tuple[str, str]:
-            nonlocal used
-
             suit_num = random.randint(0, 3)
             value_num = random.randint(0, 12)
 
@@ -882,7 +880,6 @@ class Gambling(commands.Cog):
             await message.add_reaction(option)
 
         def react_check(reaction: discord.Reaction, user: discord.User):
-            nonlocal players, game
             return user.id == players[0][0].id and reaction.message.id == message.id and str(reaction) in [options[column] for column in game.available_columns]
 
 
