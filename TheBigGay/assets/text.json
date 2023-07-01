@@ -43,7 +43,7 @@
     "Sorry, I don't think {} would understand me. I don't speak dipshit."
   ],
   "overwatch_heroes": {
-    "tanks": [
+    "tank": [
       "D.Va", "Doomfist", "Junker Queen", "Orisa", "Reinhardt", "Roadhog", "Sigma", "Winston", "Wrecking Ball", "Zarya"
     ],
     "damage": [
