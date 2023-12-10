@@ -28,6 +28,11 @@ class Miscellaneous(commands.Cog):
     async def ping(self, interaction: discord.Interaction):
         await interaction.response.send_message(f"Pong! My latency right now is {round(self.bot.latency * 1000)}ms")
 
+    @app_commands.command(description="Gives the latency between the bot and server in ms")
+    @app_commands.default_permissions(administrator=True)
+    async def version(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"Current agenda: {self.bot.version}")
+
     @app_commands.command(description="Says hi, but gayer")
     async def hello(self, interaction: discord.Interaction):
         await interaction.response.send_message("Heyyy ;)")
