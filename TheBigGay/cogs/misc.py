@@ -142,21 +142,33 @@ class Miscellaneous(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(description="Pick a random Overwatch 2 hero")
-    @app_commands.describe(role="Specify what role")
+    @app_commands.describe(role="Specify what role(s) to randomize")
     @app_commands.choices(role=[
         app_commands.Choice(name='Tank', value=0),
         app_commands.Choice(name='Damage', value=1),
-        app_commands.Choice(name='Support', value=2)
+        app_commands.Choice(name='Support', value=2),
+        app_commands.Choice(name='Team', value=3)
     ])
     async def randomhero(self, interaction:discord.Interaction, role:app_commands.Choice[int] = None):
         with open("./assets/text.json", encoding="utf8", errors="ignore") as file:
             all_heroes = json.load(file)["overwatch_heroes"]
             if role:
-                heroes = all_heroes[role.name.lower()]
+                if role.value == 3:
+                    tank = random.choice(all_heroes["tank"])
+                    damage = random.sample(all_heroes["damage"], 2)
+                    support = random.sample(all_heroes["support"], 2)
+
+                    message = f"Your random Overwatch team:\n" \
+                        f"**{tank}** | **{damage[0]}** | **{damage[1]}** | " \
+                        f"**{support[0]}** | **{support[1]}**"
+                else:
+                    hero = random.choice(all_heroes[role.name.lower()])
+                    message = f"Your random Overwatch hero: **{hero}**"
             else:
-                heroes = random.choice(list(all_heroes.values()))
-            selected = random.choice(heroes)
-        await interaction.response.send_message(f"Your random hero: **{selected}**")
+                hero = random.choice(random.choice(list(all_heroes.values())))
+                message = f"Your random Overwatch hero: **{hero}**"
+                
+        await interaction.response.send_message(message)
 
     @app_commands.command(description="Sync command tree")
     @app_commands.default_permissions(administrator=True)
