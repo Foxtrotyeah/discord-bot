@@ -11,7 +11,7 @@ high_roller_minimum = 1000
 
 
 class ExclusiveView(View):
-    def __init__(self, authorized: typing.Union[discord.Member, discord.User, list[typing.Union[discord.Member, discord.User]]]):
+    def __init__(self, authorized: typing.Union[int, list[int]]):
         if type(authorized) is not list: authorized = [authorized]
         self.authorized = authorized
         super().__init__()
