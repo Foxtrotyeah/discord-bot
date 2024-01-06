@@ -281,7 +281,7 @@ class Shop(commands.Cog, command_attrs=dict(hidden=True)):
         attachment = discord.File(f'./assets/chests/{crate[3]}', filename=f'{crate[3]}')
         embed.set_thumbnail(url=f'attachment://{crate[3]}')
 
-        view = checks.ExclusiveView(member)
+        view = checks.ExclusiveView(member.id)
         button = Button(style=discord.ButtonStyle.green, label='Open')
 
         async def callback(interaction: discord.Interaction):

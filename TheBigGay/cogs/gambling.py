@@ -366,7 +366,7 @@ class Gambling(commands.Cog):
         embed.add_field(name="\u200b", value=f"React with :x: to stop!", inline=False)
         embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
 
-        view = checks.ExclusiveView(interaction.user)
+        view = checks.ExclusiveView(interaction.user.id)
         button = Button(style=discord.ButtonStyle.gray, label='Stop', emoji='🛑')
 
         async def callback(interaction: discord.Interaction):
