@@ -1,5 +1,3 @@
-# Anthony Stuff
-
 # TheBigGay Discord Bot
 
 A bot for personal use amongst my Discord servers.
