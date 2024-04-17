@@ -6,3 +6,4 @@ requests
 pytz
 python-dateutil
 pyfiglet
+numpy
