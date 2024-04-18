@@ -15,7 +15,6 @@ config = {
     "connect_timeout": 86400
 }
 
-
 # Using any other timzeone messes with the guild.create_scheduled_event fucntion.
 timezone = pytz.timezone("US/Mountain")
 
@@ -88,7 +87,7 @@ def _check_status(table: str, member_id: int):
     if cursor.fetchone()[0] != 1:
         cursor.execute(
             f"INSERT into {table}(user_id, balance, tickets, subsidy_date) "    # added zero tickets as a dummy entry
-			f"VALUES ({member_id}, 50,0, %s)", (datetime.now(timezone).date(),) # added zero tickets as a dummy entry
+			f"VALUES ({member_id}, 50, 0, %s)", (datetime.now(timezone).date(),) # added zero tickets as a dummy entry
         )
         db.commit()
 

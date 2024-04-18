@@ -9,6 +9,7 @@ from discord.ext import commands
 from .utils import mysql, checks
 from .utils.connect4 import Connect4, Solver
 
+
 class Gambling(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
