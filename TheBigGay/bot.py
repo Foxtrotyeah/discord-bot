@@ -2,14 +2,11 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import requests
-from dotenv import load_dotenv
 import os
 
+import settings
 from cogs.utils import checks
 
-
-# Load environment variables
-load_dotenv()
 
 # Bot link
 r = requests.head(url='https://discord.com/api/v1')
