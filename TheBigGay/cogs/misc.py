@@ -23,7 +23,7 @@ class Miscellaneous(commands.Cog):
         
         await member.ban(reason=reason)
 
-        embed = discord.Embed(title="Ban", description=f"{member.mention} *has been banned*", color=discord.Color.red())
+        embed = discord.Embed(title="Bitch, Bye", description=f"{member.mention} *has been banned*", color=discord.Color.red())
         if reason:
             embed.add_field(name="Reason", value=reason, inline=False)
 
