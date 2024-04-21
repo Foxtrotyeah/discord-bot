@@ -15,7 +15,7 @@ class Miscellaneous(commands.Cog):
         self.bot = bot
 
     @app_commands.command(description="Bans a member")
-    @app_commands.default_permissions(ban_members=True)
+    @app_commands.checks.has_permissions(ban_members=True)
     @app_commands.describe(amount="Avada Kedavra!")
     async def ban(self, interaction: discord.Interaction, member: discord.Member, reason: str = None):
         if member.bot:
