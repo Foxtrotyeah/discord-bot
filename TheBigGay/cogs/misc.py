@@ -14,6 +14,20 @@ class Miscellaneous(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @app_commands.command(description="Bans a member")
+    @app_commands.default_permissions(ban_members=True)
+    @app_commands.describe(amount="Avada Kedavra!")
+    async def ban(self, interaction: discord.Interaction, member: discord.Member, reason: str = None):
+        if member.bot:
+            return await interaction.response.send_message("Well this is awkward... can we talk about it?", ephemeral=True)
+        
+        await member.ban(reason=reason)
+
+        message = f"{member.mention} *has been banned*"
+        if reason:
+            message += f"\nReason: {reason}"
+        await interaction.response.send_message(message, file=discord.File('./assets/werk.gif', filename='werk.gif'))
+    
     @app_commands.command(description="Clears messages")
     @app_commands.default_permissions(manage_messages=True)
     @app_commands.describe(amount="the number of messages to delete")
