@@ -23,10 +23,16 @@ class Miscellaneous(commands.Cog):
         
         await member.ban(reason=reason)
 
-        message = f"{member.mention} *has been banned*"
+        description = f"{member.mention} *has been banned*"
         if reason:
-            message += f"\nReason: {reason}"
-        await interaction.response.send_message(message, file=discord.File('./assets/werk.gif', filename='werk.gif'))
+            description += f"\nReason: {reason}"
+
+        embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.teal())
+
+        attachment = discord.File('./assets/werk.gif', filename='werk.gif')
+        embed.set_thumbnail(url=f'attachment://werk.gif')
+
+        await interaction.response.send_message(embed=embed, file=attachment)
     
     @app_commands.command(description="Clears messages")
     @app_commands.default_permissions(manage_messages=True)
