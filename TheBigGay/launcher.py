@@ -5,7 +5,7 @@ if __name__ == '__main__':
     bot = GayBot()
 
     # The Big Gay version
-    bot.version = "3.1.0"
+    bot.version = "3.1.1"
 
     bot.run()
     
