@@ -23,11 +23,10 @@ class Miscellaneous(commands.Cog):
         
         await member.ban(reason=reason)
 
-        description = f"{member.mention} *has been banned*"
-        if reason:
-            description += f"\nReason: {reason}"
+        title = f"{member.mention} *has been banned*"
+        description = f"\nReason: {reason}" if reason else None
 
-        embed = discord.Embed(title="Connect Four", description=description, color=discord.Color.teal())
+        embed = discord.Embed(title=title, description=description, color=discord.Color.red())
 
         attachment = discord.File('./assets/werk.gif', filename='werk.gif')
         embed.set_thumbnail(url=f'attachment://werk.gif')
