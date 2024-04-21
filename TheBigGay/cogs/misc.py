@@ -15,8 +15,8 @@ class Miscellaneous(commands.Cog):
         self.bot = bot
 
     @app_commands.command(description="Bans a member")
-    @app_commands.checks.has_permissions(ban_members=True)
-    @app_commands.describe(amount="Avada Kedavra!")
+    @app_commands.default_permissions(ban_members=True)
+    @app_commands.describe(member="the member to ban", reason="the reason for being banned")
     async def ban(self, interaction: discord.Interaction, member: discord.Member, reason: str = None):
         if member.bot:
             return await interaction.response.send_message("Well this is awkward... can we talk about it?", ephemeral=True)
