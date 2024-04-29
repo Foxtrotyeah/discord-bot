@@ -425,6 +425,32 @@ class Gambling(commands.Cog):
         if mysql.check_leaderboard("Crash", interaction.user, winnings):
             await interaction.followup.send(f"New Crash high score of **{winnings}GB**, set by {interaction.user.mention}!")
 
+    ########################## Button Game ##########################
+
+    @app_commands.command(description="(1 Player) Click the button, if you dare!")
+    async def buttonpress(self, interaction: discord.Interaction):
+        bet = 13 # thats the average number of return. with an STD of 6
+        checks.is_valid_bet(interaction.channel, bet) 
+        balance = mysql.update_balance(interaction.user, -bet)
+
+        # game math
+
+        # add some stuff here
+
+        embed = discord.Embed(title="Button Game", description=f"Press the button. You get one gaybuck per press, but the odds of losing go up 1% per press.",
+                              color=discord.Color.teal())
+        
+        embed.add_field(name="Next Score", value=f"+{next_score} gaybucks", inline=True)
+        embed.add_field(name="Total Payout", value=f"{total} gaybucks", inline=True)
+        embed.add_field(name="Odds of Scoring", value="{:.2f}%".format(odds * 100), inline=False)
+
+
+        await interaction.response.send_message(embed=embed)
+        message = await interaction.original_response()
+
+
+    #################################################################
+
 
     @app_commands.command(description="(1 Player) How many squares can you clear?")
     @app_commands.describe(bet="your bet in gaybucks")
