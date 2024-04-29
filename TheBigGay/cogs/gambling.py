@@ -427,8 +427,67 @@ class Gambling(commands.Cog):
 
     ########################## Button Game ##########################
 
+    @app_commands.command(description="(1 Player) Click the button, if you dare!")
+    async def buttonpress(self, interaction: discord.Interaction):
+        bet = 13 # thats the average number of return. with an STD of 6
+        # checks.is_valid_bet(interaction.channel, bet) 
+        # balance = mysql.update_balance(interaction.user, -bet)
+
+        total = 0-13
+        odds = 0
+        embed = discord.Embed(title="Button Game", description=f"Press the button. You get one gaybuck per press, but the odds of losing go up 1% per press.",
+                              color=discord.Color.teal())
+        embed.add_field(name="Total Payout", value=f"{total} gaybucks", inline=True)
+        embed.add_field(name="Odds of Success", value="{:.2f}%".format((1-odds) * 100), inline=False)
+        embed.add_field(name="Time to Press", value="{:.0f}s".format(10), inline=False)
+        embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+        await interaction.response.send_message(embed=embed)
+        message = await interaction.original_response()
+        options = ["\U0001F518", "❌"]
 
 
+        for option in options:
+            await message.add_reaction(option)
+
+
+        def react_check(reaction: discord.Reaction, user: discord.User):
+            if user.id == interaction.user.id and reaction.message.id == message.id and str(reaction) in options:
+                return True
+        
+        odds = 0
+        payout = 1
+        timer = 10
+        time_count = 0
+        while True: 
+            try:
+                start = time.time()
+                first_reaction, user = await self.bot.wait_for('reaction_add', timeout=10, check=react_check)
+                if str(first_reaction) == "❌":
+                    print(2)
+                    break
+
+                if str(first_reaction) == "\U0001F518":
+                    time_count = 0
+                    print(3)
+
+                # Smooth out tick speed to be roughly 1 second
+                total = time.time() - start
+                offset = 1 - total
+                print(time.time())
+                if offset > 0:
+                    await asyncio.sleep(offset)
+                    time_count = time_count+1
+                    print(time_count)
+
+                embed.set_field_at(2, name="Time to Press", value="{:.0f}s".format(timer - time_count), inline=False)
+                await interaction.edit_original_response(embed=embed, view=None)
+
+            except asyncio.TimeoutError:
+                print('Took too long.')
+                break            
+
+  
+                                    
 
     #################################################################
 
