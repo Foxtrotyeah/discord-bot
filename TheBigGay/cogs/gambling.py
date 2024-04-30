@@ -433,58 +433,74 @@ class Gambling(commands.Cog):
         # checks.is_valid_bet(interaction.channel, bet) 
         # balance = mysql.update_balance(interaction.user, -bet)
 
-        total = 0-13
+        payout = 0-13
         odds = 0
         embed = discord.Embed(title="Button Game", description=f"Press the button. You get one gaybuck per press, but the odds of losing go up 1% per press.",
                               color=discord.Color.teal())
-        embed.add_field(name="Total Payout", value=f"{total} gaybucks", inline=True)
-        embed.add_field(name="Odds of Success", value="{:.2f}%".format((1-odds) * 100), inline=False)
+        embed.add_field(name="Total Payout", value=f"{payout} gaybucks", inline=True)
+        embed.add_field(name="Odds of Success", value="{:.0f}%".format((100-odds)), inline=False)
         embed.add_field(name="Time to Press", value="{:.0f}s".format(10), inline=False)
         embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-        await interaction.response.send_message(embed=embed)
-        message = await interaction.original_response()
-        options = ["\U0001F518", "❌"]
+        # await interaction.response.send_message(embed=embed)
+        # message = await interaction.original_response()
 
-
-        for option in options:
-            await message.add_reaction(option)
-
-
-        def react_check(reaction: discord.Reaction, user: discord.User):
-            if user.id == interaction.user.id and reaction.message.id == message.id and str(reaction) in options:
-                return True
-        
-        odds = 0
-        payout = 1
         timer = 10
         time_count = 0
-        while True: 
-            try:
-                start = time.time()
-                first_reaction, user = await self.bot.wait_for('reaction_add', timeout=10, check=react_check)
-                if str(first_reaction) == "❌":
-                    print(2)
-                    break
+        game_over = False
 
-                if str(first_reaction) == "\U0001F518":
-                    time_count = 0
-                    print(3)
+        view = checks.ExclusiveView(interaction.user.id)
+        button_yes = Button(style=discord.ButtonStyle.gray, label='Press', emoji='\U0001F518')
+        button_no = Button(style=discord.ButtonStyle.gray, label='Stop', emoji='🛑')
 
-                # Smooth out tick speed to be roughly 1 second
-                total = time.time() - start
-                offset = 1 - total
-                print(time.time())
-                if offset > 0:
-                    await asyncio.sleep(offset)
-                    time_count = time_count+1
-                    print(time_count)
+        async def callback1(interaction: discord.Interaction):
+            nonlocal time_count, odds, payout, game_over
 
-                embed.set_field_at(2, name="Time to Press", value="{:.0f}s".format(timer - time_count), inline=False)
-                await interaction.edit_original_response(embed=embed, view=None)
+            pick = random.randint(0, 100)
 
-            except asyncio.TimeoutError:
-                print('Took too long.')
-                break            
+            if odds > pick:
+                game_over = True
+                print('game over')
+                
+            time_count = 0
+            payout += 1
+            odds += 1            
+            await interaction.response.defer()
+            
+        async def callback2(interaction: discord.Interaction):
+            nonlocal game_over
+            game_over = True
+            await interaction.response.defer()
+
+        button_yes.callback = callback1
+        button_no.callback = callback2
+        
+        view.add_item(button_yes)
+        view.add_item(button_no)
+
+        await interaction.response.send_message(embed=embed, view=view)
+        await asyncio.sleep(1)
+        
+        while game_over != True: 
+            start = time.time()
+            # Smooth out tick speed to be roughly 1 second
+            total = time.time() - start
+            offset = 1 - total
+            
+            if offset > 0:
+                await asyncio.sleep(offset)
+                time_count = time_count+1
+
+                if time_count> timer:
+                    print('took too long')
+                    game_over = True
+
+            embed.set_field_at(0, name="Total Payout", value=f"{payout} gaybucks", inline=True)
+            embed.set_field_at(1, name="Odds of Success", value="{:.0f}%".format((100-odds)), inline=False)
+            embed.set_field_at(2, name="Time to Press", value="{:.0f}s".format(timer - time_count), inline=False)
+            await interaction.edit_original_response(embed=embed, view=view)
+
+        print('oerall over now')
+        # NEED TO ADD MONEY STUFF NOW
 
   
                                     
