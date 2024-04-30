@@ -428,12 +428,12 @@ class Gambling(commands.Cog):
     ########################## Button Game ##########################
 
     @app_commands.command(description="(1 Player) Click the button, if you dare!")
-    async def buttonpress(self, interaction: discord.Interaction):
-        bet = 13 # thats the average number of return. with an STD of 6
+    @app_commands.describe(bet="your bet in gaybucks")
+    async def buttonpress(self, interaction: discord.Interaction, bet: int):
+        
         # checks.is_valid_bet(interaction.channel, bet) 
         # balance = mysql.update_balance(interaction.user, -bet)
-
-        payout = 0-13
+        payout = 0-bet
         odds = 0
         embed = discord.Embed(title="Button Game", description=f"Press the button. You get one gaybuck per press, but the odds of losing go up 1% per press.",
                               color=discord.Color.teal())
@@ -462,7 +462,7 @@ class Gambling(commands.Cog):
                 print('game over')
                 
             time_count = 0
-            payout += 1
+            payout += int(round((bet/13)))
             odds += 1            
             await interaction.response.defer()
             
