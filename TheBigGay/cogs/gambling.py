@@ -432,7 +432,7 @@ class Gambling(commands.Cog):
     async def buttonpress(self, interaction: discord.Interaction, bet: int):
         checks.is_valid_bet(interaction.channel, bet) 
         balance = mysql.update_balance(interaction.user, -bet)
-        payout = 0-bet
+        payout = 0
         odds = 0
         timer = 3
         time_count = 0
@@ -507,12 +507,11 @@ class Gambling(commands.Cog):
                 embed.set_field_at(2, name="Time to Press", value="{:.0f}s".format(timer - time_count), inline=False)
                 await interaction.edit_original_response(embed=embed, view=view)
 
-        winnings = payout + bet
-        balance = mysql.update_balance(interaction.user, winnings)
+        balance = mysql.update_balance(interaction.user, payout)
         embed.add_field(name="Balance", value=f"You now have {balance} gaybucks.", inline=False)
         await interaction.edit_original_response(embed=embed, view=None)
 
-        if mysql.check_leaderboard("Buttonpress", interaction.user, winnings):
+        if mysql.check_leaderboard("Buttonpress", interaction.user, payout):
             await interaction.followup.send(f"New Buttonpress high score of **{payout}GB**, set by {interaction.user.mention}!")
 
     #################################################################
