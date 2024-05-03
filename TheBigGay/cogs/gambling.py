@@ -425,6 +425,97 @@ class Gambling(commands.Cog):
         if mysql.check_leaderboard("Crash", interaction.user, winnings):
             await interaction.followup.send(f"New Crash high score of **{winnings}GB**, set by {interaction.user.mention}!")
 
+    ########################## Button Game ##########################
+
+    @app_commands.command(description="(1 Player) Click the button, if you dare!")
+    @app_commands.describe(bet="your bet in gaybucks")
+    async def buttonpress(self, interaction: discord.Interaction, bet: int):
+        checks.is_valid_bet(interaction.channel, bet) 
+        balance = mysql.update_balance(interaction.user, -bet)
+        payout = 0
+        odds = 0
+        timer = 3
+        time_count = 0
+        game_over = False
+
+        embed = discord.Embed(title="Button Game", description=f"Press the button. You get one gaybuck per press, but the odds of losing go up 1% per press.",
+                              color=discord.Color.teal())
+        embed.add_field(name="Total Payout", value=f"{payout} gaybucks", inline=True)
+        embed.add_field(name="Odds of Success", value="{:.0f}%".format((100-odds)), inline=False)
+        embed.add_field(name="Time to Press", value="{:.0f}s".format(timer), inline=False)
+        embed.set_footer(text=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+
+        view = checks.ExclusiveView(interaction.user.id)
+        button_yes = Button(style=discord.ButtonStyle.gray, label='Press', emoji='\U0001F518')
+        button_no = Button(style=discord.ButtonStyle.gray, label='Stop', emoji='🛑')
+
+        async def callback1(interaction: discord.Interaction):
+            ''' Button Press Yes Function
+                • Resets timer
+                • Increases payout and odds  
+            '''
+            nonlocal time_count, odds, payout, game_over
+
+            pick = random.randint(0, 100)
+
+            if odds > pick:
+                game_over = True
+                embed.color = discord.Color.red()
+                
+            if game_over != True: # doesnt reset if a bad pick
+                time_count = 0
+                payout += int(round((bet/13)))
+                odds += 1
+
+            await interaction.response.defer()
+            
+        async def callback2(interaction: discord.Interaction):
+            ''' Button Press No Function
+                • Ends game 
+            '''
+            nonlocal game_over
+            embed.set_field_at(2, name="Game Over", value="User ended", inline=False)
+            game_over = True
+            await interaction.response.defer()
+
+        button_yes.callback = callback1
+        button_no.callback = callback2
+        
+        view.add_item(button_yes)
+        view.add_item(button_no)
+
+        await interaction.response.send_message(embed=embed, view=view)
+        await asyncio.sleep(1)
+        
+        while game_over != True: 
+            start = time.time()
+            total = time.time() - start
+            offset = 1 - total
+            
+            if offset > 0:
+                await asyncio.sleep(offset)
+                time_count = time_count+1
+
+                if time_count> timer:
+                    embed.set_field_at(2, name="Game Over", value="Ran out of time!", inline=False)
+                    embed.color = discord.Color.red()
+                    game_over = True
+
+            if game_over != True: # needed for timed out gameplay
+                embed.set_field_at(0, name="Total Payout", value=f"{payout} gaybucks", inline=True)
+                embed.set_field_at(1, name="Odds of Success", value="{:.0f}%".format((100-odds)), inline=False)
+                embed.set_field_at(2, name="Time to Press", value="{:.0f}s".format(timer - time_count), inline=False)
+                await interaction.edit_original_response(embed=embed, view=view)
+
+        balance = mysql.update_balance(interaction.user, payout)
+        embed.add_field(name="Balance", value=f"You now have {balance} gaybucks.", inline=False)
+        await interaction.edit_original_response(embed=embed, view=None)
+
+        if mysql.check_leaderboard("Buttonpress", interaction.user, payout):
+            await interaction.followup.send(f"New Buttonpress high score of **{payout}GB**, set by {interaction.user.mention}!")
+
+    #################################################################
+
 
     @app_commands.command(description="(1 Player) How many squares can you clear?")
     @app_commands.describe(bet="your bet in gaybucks")
